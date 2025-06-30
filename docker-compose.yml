@@ -1,10 +1,36 @@
+version: "3.9"
+
 services:
-  db: 
-    image: mysql
-    volumes:
-      - ./data/mysql:/var/lib/mysql
-    ports:
-      - '3306:3306'
+  db:
+    image: mysql:8.0
+    container_name: adnysc-mysql
+    restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 'root'
-      MYSQL_DATABASE: 'test'
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  web:
+    build: .
+    container_name: adnysc-backend
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  mysql_data:
