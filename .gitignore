@@ -1,4 +1,4 @@
-env
-venv
-data
-
+/env
+/venv
+/data
+/.env

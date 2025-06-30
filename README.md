@@ -64,14 +64,18 @@ By default, this runs on `http://127.0.0.1:8000`.
 
 ### 📦 Project Structure
 ADN-YSC-Portal-Backend/
-│
-├── config/          # Configuration files
-├── controllers/     # FastAPI routers and business logic
-├── models/          # SQLAlchemy or Pydantic models
-├── type/            # Type definitions (schemas)
-├── main.py          # App entry point
-├── requirements.txt # Python dependencies
+├── routers/
+│   └── graphql/              # GraphQL endpoints (schema, routes)
+├── config/                  # Settings and .env config
+├── models/                  # SQLAlchemy or ODM models
+├── schemas/                 # Pydantic and GraphQL types
+│   └── graphql/
+├── services/                # Business logic
+├── main.py                  # App entry point
+├── requirements.txt
 └── docker-compose.yml
+
+
 
 ## 🤝 Collaboration Guidelines
 To keep development clean and organized, please follow these collaboration steps:
