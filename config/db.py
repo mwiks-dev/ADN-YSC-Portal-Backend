@@ -1,5 +1,6 @@
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
+import os
 
-engine = create_engine('mysql+pymysql://root:root@localhost/test')
-meta = MetaData
+database_url = os.getenv("DATABASE_URL")
+engine = create_engine(database_url)
 conn = engine.connect()
