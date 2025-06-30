@@ -21,3 +21,13 @@ class UpdateUserInput:
     email: str
     phonenumber: str
     password: str
+
+@strawberry.input
+class LoginInput:
+    email: str
+    password: str
+
+@strawberry.type
+class TokenType:
+    access_token: str
+    token_type: str
