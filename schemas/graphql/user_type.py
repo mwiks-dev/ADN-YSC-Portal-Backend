@@ -6,7 +6,6 @@ class UserType:
     name: str
     email: str
     phonenumber: str
-    password: str
 
 @strawberry.input
 class UserInput:
