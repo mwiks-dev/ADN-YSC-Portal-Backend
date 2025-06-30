@@ -2,7 +2,7 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, LoginInput, TokenType
+from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token
 
 def get_current_user(info: Info) -> Optional[UserType]:
@@ -18,6 +18,7 @@ def get_current_user(info: Info) -> Optional[UserType]:
     if not user:
         return None
     return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber)
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -54,6 +55,14 @@ class Mutation:
             raise Exception("Unauthorized")
         db = SessionLocal()
         return delete_user(db, id)
+    
+    @strawberry.mutation
+    def register(self, input:RegisterInput) -> UserType:
+        db = SessionLocal()
+        existing_user = get_user_by_email(db,input.email)
+        if existing_user:
+            raise Exception("User with this email already exists")
+        return create_user(db,input.name, input.email, input.phonenumber,input.password )
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[TokenType]:
