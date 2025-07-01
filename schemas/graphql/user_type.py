@@ -8,7 +8,7 @@ class RoleEnum(enum.Enum):
     deanery_moderator = "deanery_moderator"
     ysc_coordinator = "ysc_coordinator"
     ysc_chaplain = "ysc_chaplain"
-    
+
 @strawberry.type
 class UserType:
     id: int
@@ -49,3 +49,9 @@ class LoginInput:
 class TokenType:
     access_token: str
     token_type: str
+
+@strawberry.input
+class ResetPasswordInput:
+    email: str
+    old_password: str
+    new_password: str

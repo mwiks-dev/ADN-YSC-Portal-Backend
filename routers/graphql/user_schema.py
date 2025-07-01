@@ -2,9 +2,12 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType
-from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token
+from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput
+from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token, reset_password
 from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member, can_register_users
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_current_user(info: Info) -> Optional[UserType]:
     auth_header = info.context.get("request").headers.get("authorization")
@@ -81,5 +84,22 @@ class Mutation:
             return None
         token = create_access_token(data={"sub": user.email})
         return TokenType(access_token=token, token_type="bearer")
+    
+    @strawberry.mutation
+    def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
+        user = get_current_user(info)
+        if not user or user.email != input.email:
+            raise Exception("Unauthorized: Token mismatch or invalid user")
+        db = SessionLocal()
+        db_user = get_user_by_email(db, input.email)
+        if not db_user:
+            raise Exception("User not found")
+        if not pwd_context.verify(input.old_password, db_user.password):
+            raise Exception("Old password is incorrect")
+
+        db_user.password = pwd_context.hash(input.new_password)
+        db.commit()
+        db.refresh(db_user)
+        return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
