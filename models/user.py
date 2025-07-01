@@ -16,3 +16,4 @@ class User(Base):
     email = Column(String(100), unique=True, index=True)
     phonenumber = Column(String(20))
     password = Column(String(255))
+    role = Column(Enum(UserRole), default=UserRole.parish_member)
