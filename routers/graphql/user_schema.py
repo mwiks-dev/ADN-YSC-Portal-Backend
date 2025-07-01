@@ -14,11 +14,8 @@ def get_current_user(info: Info) -> Optional[UserType]:
     if not email:
         return None
     db = SessionLocal()
-    user = get_user_by_email(db, email)
-    if not user:
-        return None
-    return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber)
-
+    return get_user_by_email(db, email)
+    
 @strawberry.type
 class Query:
     @strawberry.field
@@ -30,8 +27,9 @@ class Query:
 
     @strawberry.field
     def users(self, info: Info) -> List[UserType]:
-        if not get_current_user(info):
-            raise Exception("Unauthorized")
+        user = get_current_user(info)
+        if not user or user.role != "ysc_chaplain":
+            raise Exception("Unauthorized: Only chaplains can view all users!")
         db = SessionLocal()
         return get_users(db)
     
@@ -51,8 +49,9 @@ class Mutation:
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
-        if not get_current_user(info):
-            raise Exception("Unauthorized")
+        user = get_current_user(info)
+        if not user or user.role != "ysc_chaplain":
+            raise Exception("Unauthorized: Only chaplains can delete users!")
         db = SessionLocal()
         return delete_user(db, id)
     
