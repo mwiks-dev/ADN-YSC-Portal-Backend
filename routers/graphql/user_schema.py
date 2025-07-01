@@ -4,6 +4,7 @@ from typing import List, Optional
 from config.db import SessionLocal
 from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token
+from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member
 
 def get_current_user(info: Info) -> Optional[UserType]:
     auth_header = info.context.get("request").headers.get("authorization")
@@ -28,8 +29,8 @@ class Query:
     @strawberry.field
     def users(self, info: Info) -> List[UserType]:
         user = get_current_user(info)
-        if not user or user.role != "ysc_chaplain":
-            raise Exception("Unauthorized: Only chaplains can view all users!")
+        if not is_chaplain(user) or is_ysc_coordinator(user):
+            raise Exception("Unauthorized: Only the Chaplain and Coordinators can view all users!")
         db = SessionLocal()
         return get_users(db)
     
@@ -50,7 +51,7 @@ class Mutation:
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
-        if not user or user.role != "ysc_chaplain":
+        if not is_chaplain(user):
             raise Exception("Unauthorized: Only chaplains can delete users!")
         db = SessionLocal()
         return delete_user(db, id)
