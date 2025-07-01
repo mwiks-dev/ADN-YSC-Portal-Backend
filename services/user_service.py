@@ -20,9 +20,9 @@ def get_user_by_email(db:Session, user_email:str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, password: str):
+def create_user(db: Session, name: str, email: str, phonenumber: str, password: str, role:str = "parish_member"):
     hashed_password = pwd_context.hash(password)
-    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password)
+    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password, role=role)
     db.add(user)
     db.commit()
     db.refresh(user)

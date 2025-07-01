@@ -40,7 +40,7 @@ class Mutation:
     @strawberry.mutation
     def create_user(self, input: UserInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber, input.password)
+        return create_user(db, input.name, input.email, input.phonenumber)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -62,7 +62,8 @@ class Mutation:
         existing_user = get_user_by_email(db,input.email)
         if existing_user:
             raise Exception("User with this email already exists")
-        return create_user(db,input.name, input.email, input.phonenumber,input.password )
+        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role.value )
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[TokenType]:
