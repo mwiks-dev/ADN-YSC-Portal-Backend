@@ -4,7 +4,7 @@ from typing import List, Optional
 from config.db import SessionLocal
 from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token
-from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member
+from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member, can_register_users
 
 def get_current_user(info: Info) -> Optional[UserType]:
     auth_header = info.context.get("request").headers.get("authorization")
@@ -43,25 +43,33 @@ class Mutation:
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
-        if not get_current_user(info):
+        user = get_current_user(info)
+        if not user:
             raise Exception("Unauthorized")
+        if not is_chaplain(user) and user.id != input.id:
+            raise Exception("You can only update your own information!")
         db = SessionLocal()
         return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password)
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
-        if not is_chaplain(user):
-            raise Exception("Unauthorized: Only chaplains can delete users!")
+        if not is_chaplain(user) or is_ysc_coordinator(user):
+            raise Exception("Unauthorized: Only the Chaplain and Coordinators can delete users!")
         db = SessionLocal()
         return delete_user(db, id)
     
     @strawberry.mutation
-    def register(self, input:RegisterInput) -> UserType:
+    def register(self, info:Info, input:RegisterInput) -> UserType:
         db = SessionLocal()
         existing_user = get_user_by_email(db,input.email)
         if existing_user:
             raise Exception("User with this email already exists")
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
+        if not can_register_users(current_user):
+            raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
         user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role.value )
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role)
 

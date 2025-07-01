@@ -15,3 +15,11 @@ def is_parish_member(user) -> bool:
 
 def is_authenticated(user) -> bool:
     return user is not None
+
+def can_register_users(user) -> bool:
+    return any([
+        is_chaplain(user),
+        is_ysc_coordinator(user),
+        is_deanery_moderator(user),
+        is_parish_moderator(user)
+    ])
