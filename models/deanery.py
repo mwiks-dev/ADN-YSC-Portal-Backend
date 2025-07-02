@@ -7,5 +7,5 @@ class Deanery(Base):
     id = Column(Integer, primary_key = True, index=True)
     name = Column(String(100), unique = True, index = True)
 
-    parishes = relationship("Parish", back_populates="deanery")
+    parishes = relationship("Parish", back_populates="deanery", foreign_keys="Parish.deanery_id")
     

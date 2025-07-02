@@ -1,19 +1,15 @@
 import strawberry
-from .deanery_type import DeaneryType
-from .outstation_type import OutstationType
 
-@strawberry.type
-class ParishType:
-    id: int
+
+@strawberry.input
+class ParishInput:
     name: str
-    deanery: DeaneryType
-    outstations: list[OutstationType]
+    deanery_id: int
+    deanery_name: str
 
 @strawberry.input
 class UpdateParishDetails:
     id: int
     name: str
 
-@strawberry.input
-class ParishInput:
-    name:str
+

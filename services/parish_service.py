@@ -15,7 +15,7 @@ def get_parishes_by_deanery(db:Session,deanery:str):
 def get_all_users_of_parish(db:Session,parish_id:int):
     return db.query(User).filter(User.parish_id==parish_id).all()
 
-def get_parish_by_name(db:Session,parish_name):
+def get_parish_by_name(db:Session,parish_name:str):
     return db.query(Parish).filter(Parish.name == parish_name).first()
 
 def create_parish(db:Session, name:str,deanery:str):

@@ -1,20 +1,22 @@
 import strawberry
+from strawberry.types import Info
 from typing import List,Optional
 
 from config.db import SessionLocal
-from schemas.graphql.parish_type import ParishType,ParishInput,UpdateParishDetails
-from schemas.graphql.user_type import UserType
+from schemas.graphql.parish_type import ParishInput,UpdateParishDetails
+from schemas.graphql.shared_types import UserType, ParishType
 from services.parish_service import get_parish_by_id,get_parishes,get_parish_by_name,get_all_users_of_parish,get_parishes_by_deanery,create_parish,delete_parish,update_parish
 
 @strawberry.type
 class ParishQuery:
     @strawberry.field
-    def parish(self,attribute:str) -> Optional[ParishType]:
-        db=SessionLocal()
-        if isinstance(attribute,int):
-            return get_parish_by_id(db,attribute)
-        elif isinstance(attribute,str):
-            return get_parish_by_name(db,attribute)
+    def parish(self, info: Info, id: Optional[int] = None, name: Optional[str] = None) -> Optional[ParishType]:
+        db = SessionLocal()
+        if id is not None:
+            return get_parish_by_id(db, id)
+        elif name is not None:
+            return get_parish_by_name(db, name)
+        return None  # neither provided
     
     @strawberry.field
     def parishes(self) -> List[ParishType]:
@@ -48,4 +50,5 @@ class ParishMutation:
         db = SessionLocal()
         return delete_parish(db,id)
     
-    
+
+schema = strawberry.Schema(query=ParishQuery, mutation=ParishMutation)

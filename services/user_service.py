@@ -28,13 +28,14 @@ def create_user(db: Session, name: str, email: str, phonenumber: str, password: 
     db.refresh(user)
     return user
 
-def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, password: str):
+def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, password: str,parish:str):
     user = db.query(User).filter(User.id == id).first()
     if user:
         user.name = name
         user.email = email
         user.phonenumber = phonenumber
         user.password = pwd_context.hash(password)
+        user.parish = parish
         db.commit()
         db.refresh(user)
     return user
