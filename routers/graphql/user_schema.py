@@ -44,7 +44,7 @@ class Mutation(ParishMutation):
     @strawberry.mutation
     def create_user(self, input: UserInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber)
+        return create_user(db, input.name, input.email, input.phonenumber, input.role)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -54,7 +54,7 @@ class Mutation(ParishMutation):
         if not is_chaplain(user) and user.id != input.id:
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password)
+        return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password, input.role)
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
