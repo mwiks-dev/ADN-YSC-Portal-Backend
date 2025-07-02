@@ -1,5 +1,6 @@
 import strawberry
 import enum
+from .parish_type import ParishType
 
 @strawberry.enum
 class RoleEnum(enum.Enum):
@@ -16,6 +17,7 @@ class UserType:
     email: str
     phonenumber: str
     role: RoleEnum
+    parish: ParishType
 
 @strawberry.input
 class UserInput:

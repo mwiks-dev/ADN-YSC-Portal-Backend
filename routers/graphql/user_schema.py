@@ -6,8 +6,10 @@ from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, Regi
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token, reset_password
 from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member, can_register_users
 from passlib.context import CryptContext
+from routers.graphql.parish_schema import ParishQuery,ParishMutation
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def get_current_user(info: Info) -> Optional[UserType]:
     auth_header = info.context.get("request").headers.get("authorization")
@@ -21,7 +23,7 @@ def get_current_user(info: Info) -> Optional[UserType]:
     return get_user_by_email(db, email)
     
 @strawberry.type
-class Query:
+class Query(ParishQuery):
     @strawberry.field
     def user(self, info: Info, id: int) -> Optional[UserType]:
         if not get_current_user(info):
@@ -38,7 +40,7 @@ class Query:
         return get_users(db)
     
 @strawberry.type
-class Mutation:
+class Mutation(ParishMutation):
     @strawberry.mutation
     def create_user(self, input: UserInput) -> UserType:
         db = SessionLocal()
