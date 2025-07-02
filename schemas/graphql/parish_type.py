@@ -1,7 +1,5 @@
 import strawberry
-from typing import List
-from schemas.graphql.user_type import UserType
-
+from .deanery_type import DeaneryType
 
 @strawberry.type
 class ParishType:
