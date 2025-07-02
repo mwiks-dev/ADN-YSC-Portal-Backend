@@ -20,4 +20,4 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.parish_member)
     
     parish_id = Column(Integer, ForeignKey("parishes.id"))
-    parish = relationship("Parish", backref="users")
+    parish = relationship("Parish", back_populates="users")

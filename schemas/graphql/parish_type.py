@@ -5,6 +5,7 @@ from .deanery_type import DeaneryType
 class ParishType:
     id: int
     name: str
+    deanery: DeaneryType
 
 @strawberry.input
 class UpdateParishDetails:

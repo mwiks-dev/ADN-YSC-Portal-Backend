@@ -9,7 +9,7 @@ from services.parish_service import get_parish_by_id,get_parishes,get_parish_by_
 @strawberry.type
 class ParishQuery:
     @strawberry.field
-    def parish(self,attribute) -> Optional[ParishType]:
+    def parish(self,attribute:str) -> Optional[ParishType]:
         db=SessionLocal()
         if isinstance(attribute,int):
             return get_parish_by_id(db,attribute)

@@ -1,6 +1,6 @@
 import strawberry
-import enum
 from .parish_type import ParishType
+import enum
 
 @strawberry.enum
 class RoleEnum(enum.Enum):
@@ -25,6 +25,8 @@ class UserInput:
     email: str
     phonenumber: str
     password: str
+    role: RoleEnum
+    parish_id: int
 
 @strawberry.input
 class UpdateUserInput:
@@ -33,6 +35,8 @@ class UpdateUserInput:
     email: str
     phonenumber: str
     password: str
+    role: RoleEnum
+    parish_id: int
 
 @strawberry.input
 class RegisterInput:
@@ -40,7 +44,8 @@ class RegisterInput:
     email: str
     phonenumber: str
     password: str
-    role: RoleEnum = RoleEnum.parish_member
+    role: RoleEnum 
+    parish_id: int
 
 @strawberry.input
 class LoginInput:

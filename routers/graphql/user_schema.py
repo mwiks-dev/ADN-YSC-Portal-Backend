@@ -75,8 +75,8 @@ class Mutation(ParishMutation):
             raise Exception("Unauthorized")
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role.value )
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role)
+        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role, parish_id = input.parish_id )
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role, parish=user.parish)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[TokenType]:
