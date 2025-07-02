@@ -1,5 +1,14 @@
 import strawberry
+import enum
 from .parish_type import ParishType
+
+@strawberry.enum
+class RoleEnum(enum.Enum):
+    parish_member = "parish_member"
+    parish_moderator = "parish_moderator"
+    deanery_moderator = "deanery_moderator"
+    ysc_coordinator = "ysc_coordinator"
+    ysc_chaplain = "ysc_chaplain"
 
 @strawberry.type
 class UserType:
@@ -7,6 +16,7 @@ class UserType:
     name: str
     email: str
     phonenumber: str
+    role: RoleEnum
     parish: ParishType
 
 @strawberry.input
@@ -30,6 +40,7 @@ class RegisterInput:
     email: str
     phonenumber: str
     password: str
+    role: RoleEnum = RoleEnum.parish_member
 
 @strawberry.input
 class LoginInput:
@@ -40,3 +51,9 @@ class LoginInput:
 class TokenType:
     access_token: str
     token_type: str
+
+@strawberry.input
+class ResetPasswordInput:
+    email: str
+    old_password: str
+    new_password: str

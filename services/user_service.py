@@ -20,9 +20,9 @@ def get_user_by_email(db:Session, user_email:str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, password: str):
+def create_user(db: Session, name: str, email: str, phonenumber: str, password: str, role:str = "parish_member"):
     hashed_password = pwd_context.hash(password)
-    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password)
+    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password, role=role)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -57,7 +57,7 @@ def authenticate_user(db: Session, email: str, password: str):
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.now() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire,  "sub": data.get("sub")})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str):
@@ -69,3 +69,15 @@ def verify_token(token: str):
         return email
     except JWTError:
         return None
+    
+def reset_password(db: Session, email: str, old_password: str, new_password: str):
+    user = get_user_by_email(db, email)
+    if not user:
+        raise Exception("User not found")
+    if not pwd_context.verify(old_password, user.password):
+        raise Exception("Old password is incorrect")
+
+    user.password = pwd_context.hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
