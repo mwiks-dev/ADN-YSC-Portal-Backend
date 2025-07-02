@@ -1,9 +1,8 @@
 import strawberry
 from typing import List,Optional
 
-import strawberry.file_uploads
 from config.db import SessionLocal
-from schemas.graphql.parishes_type import ParishType,ParishInput,UpdateParishDetails
+from schemas.graphql.parish_type import ParishType,ParishInput,UpdateParishDetails
 from schemas.graphql.user_type import UserType
 from services.parish_service import get_parish_by_id,get_parishes,get_parish_by_name,get_all_users_of_parish,get_parishes_by_deanery,create_parish,delete_parish,update_parish
 

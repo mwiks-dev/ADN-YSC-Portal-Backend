@@ -11,4 +11,4 @@ class User(Base):
     password = Column(String(255))
     
     parish_id = Column(Integer, ForeignKey("parishes.id"))
-    parish = relationship("Parish", back_populates="users")
+    parish = relationship("Parish", backref="users")
