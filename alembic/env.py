@@ -3,7 +3,9 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 import os
 from config.db import Base
-from models.user import User  # import all models here
+from models.user import User # import all models here
+from models.deanery import Deanery
+from models.parish import Parish
 
 from dotenv import load_dotenv
 load_dotenv()
