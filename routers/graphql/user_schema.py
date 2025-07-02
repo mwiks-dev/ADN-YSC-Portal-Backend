@@ -2,6 +2,7 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
+from routers.graphql.parish_schema import ParishQuery,ParishMutation
 from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token
 
@@ -20,7 +21,7 @@ def get_current_user(info: Info) -> Optional[UserType]:
     return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber)
 
 @strawberry.type
-class Query:
+class Query(ParishQuery):
     @strawberry.field
     def user(self, info: Info, id: int) -> Optional[UserType]:
         if not get_current_user(info):
@@ -36,7 +37,7 @@ class Query:
         return get_users(db)
     
 @strawberry.type
-class Mutation:
+class Mutation(ParishMutation):
     @strawberry.mutation
     def create_user(self, input: UserInput) -> UserType:
         db = SessionLocal()

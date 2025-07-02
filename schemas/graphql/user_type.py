@@ -1,4 +1,5 @@
 import strawberry
+from .parish_type import ParishType
 
 @strawberry.type
 class UserType:
@@ -6,6 +7,7 @@ class UserType:
     name: str
     email: str
     phonenumber: str
+    parish: ParishType
 
 @strawberry.input
 class UserInput:

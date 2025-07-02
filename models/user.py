@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from config.db import Base
 
 class User(Base):
@@ -8,3 +9,6 @@ class User(Base):
     email = Column(String(100), unique=True, index=True)
     phonenumber = Column(String(20))
     password = Column(String(255))
+    
+    parish_id = Column(Integer, ForeignKey("parishes.id"))
+    parish = relationship("Parish", backref="users")
