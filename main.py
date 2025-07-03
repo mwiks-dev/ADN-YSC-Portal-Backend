@@ -10,8 +10,8 @@ graphql_app = GraphQLRouter(schema)
 
 app.include_router(graphql_app, prefix="/graphql")
 
-@app.on_event("startup")
-def on_startup():
-    seed_data()
+# @app.on_event("startup")
+# def on_startup():
+#     seed_data()
 
 
