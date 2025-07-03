@@ -11,5 +11,6 @@ class ParishInput:
 class UpdateParishDetails:
     id: int
     name: str
+    deanery: str
 
 

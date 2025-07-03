@@ -1,10 +1,11 @@
 from models.parish import Parish
 from models.user import User
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
 
 
 def get_parishes(db:Session):
-    return db.query(Parish).all()
+    return db.query(Parish).options(joinedload(Parish.deanery)).all()
 
 def get_parish_by_id(db:Session,parish_id:int):
     return db.query(Parish).filter(Parish.id == parish_id).first()
@@ -15,8 +16,8 @@ def get_parishes_by_deanery(db:Session,deanery:str):
 def get_all_users_of_parish(db:Session,parish_id:int):
     return db.query(User).filter(User.parish_id==parish_id).all()
 
-def get_parish_by_name(db:Session,parish_name:str):
-    return db.query(Parish).filter(Parish.name == parish_name).first()
+def get_parish_by_name(db:Session,name:str):
+    return db.query(Parish).options(joinedload(Parish.deanery)).filter_by(name=name).first()
 
 def create_parish(db:Session, name:str,deanery:str):
     parish = Parish(
