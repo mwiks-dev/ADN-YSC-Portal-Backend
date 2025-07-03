@@ -9,6 +9,7 @@ from models.deanery import Deanery
 from models.parish import Parish
 from models.outstation import Outstation
 # Map of deanery to list of parishes
+
 def seed_data():
     deaneries_data = {
         "MANGU DEANERY": [

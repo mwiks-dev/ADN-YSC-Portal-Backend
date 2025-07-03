@@ -1,6 +1,5 @@
 import strawberry
 
-
 @strawberry.input
 class ParishInput:
     name: str
