@@ -1,10 +1,12 @@
 import strawberry
 from strawberry.types import Info
 from typing import List,Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
 from utils.auth_utils import get_current_user
 from config.db import SessionLocal
 from models.deanery import Deanery
+from models.parish import Parish
+from models.outstation import Outstation
 from schemas.graphql.parish_type import ParishInput,UpdateParishDetails
 from schemas.graphql.shared_types import UserType, ParishType
 from services.parish_service import get_parish_by_id,get_parishes,get_parish_by_name,get_all_users_of_parish,get_parishes_by_deanery,create_parish,delete_parish,update_parish
@@ -39,9 +41,31 @@ class ParishQuery:
 @strawberry.type    
 class ParishMutation:
     @strawberry.mutation
-    def create_parish(self,input:ParishInput) -> ParishType:
+    def create_parish(self, info:Info, input:ParishInput, outstations: Optional[List[str]] = None) -> ParishType:
         db = SessionLocal()
-        return create_parish(db,input.name,input.deanery)
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized!")
+        if not is_chaplain(current_user) or is_ysc_coordinator(current_user):
+            raise Exception("Unauthorized: Only the Chaplain and Coordinators can create a parish!")
+        deanery = db.query(Deanery).filter_by(name = input.deanery).first()
+        if not deanery:
+            raise Exception("Deanery not found")
+        parish = Parish(name= input.name, deanery_id=deanery.id)
+        db.add(parish)
+        db.commit()
+        db.refresh(parish)
+
+        # Optional outstations
+        if outstations:
+            for outstation_name in outstations:
+                outstation = Outstation(name=outstation_name, parish_id=parish.id)
+                db.add(outstation)
+            db.commit()
+
+        parish = db.query(Parish).options(joinedload(Parish.deanery)).filter_by(id=parish.id).first()
+
+        return parish
     
     @strawberry.mutation
     def update_parish(self, info:Info, input:UpdateParishDetails) -> Optional[ParishType]:

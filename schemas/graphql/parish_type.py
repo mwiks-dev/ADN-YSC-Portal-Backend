@@ -1,11 +1,12 @@
 import strawberry
+from typing import List, Optional
 
 @strawberry.input
 class ParishInput:
     name: str
-    deanery_id: int
-    deanery_name: str
-
+    deanery: str
+    outstations: Optional[List[str]] = None
+ 
 @strawberry.input
 class UpdateParishDetails:
     id: int
