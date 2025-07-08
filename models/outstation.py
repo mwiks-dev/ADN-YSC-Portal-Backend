@@ -6,6 +6,6 @@ class Outstation(Base):
     __tablename__ = "outstations"
     id = Column(Integer, primary_key = True, index=True)
     name = Column(String(100), index = True)
-    parish_id = Column(Integer, ForeignKey("parishes.id"))
+    parish_id = Column(Integer, ForeignKey("parishes.id", ondelete="CASCADE"), nullable=False)
 
     parish = relationship("Parish", back_populates="outstations")

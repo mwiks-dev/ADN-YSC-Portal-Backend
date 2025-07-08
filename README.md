@@ -52,6 +52,9 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Create Seed Data in db
+- Uncomment the last 3 lines in the main.py file to create seed data to be created in database
+
 # Start FastAPI server
 uvicorn main:app --reload
 ```

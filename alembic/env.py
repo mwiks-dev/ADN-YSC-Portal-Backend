@@ -6,6 +6,7 @@ from config.db import Base
 from models.user import User # import all models here
 from models.deanery import Deanery
 from models.parish import Parish
+from models.outstation import Outstation
 
 from dotenv import load_dotenv
 load_dotenv()

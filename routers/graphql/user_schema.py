@@ -2,28 +2,19 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UserType, UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput
-from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, verify_token, reset_password
-from utils.auth_utils import is_authenticated, is_chaplain, is_ysc_coordinator, is_deanery_moderator, is_parish_moderator, is_parish_member, can_register_users
+from schemas.graphql.user_type import UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput
+from schemas.graphql.shared_types import UserType
+from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
+from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users
 from passlib.context import CryptContext
-from routers.graphql.parish_schema import ParishQuery,ParishMutation
+from routers.graphql.parish_schema import ParishMutation
+from utils.auth_utils import get_current_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-def get_current_user(info: Info) -> Optional[UserType]:
-    auth_header = info.context.get("request").headers.get("authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return None
-    token = auth_header.split(" ")[1]
-    email = verify_token(token)
-    if not email:
-        return None
-    db = SessionLocal()
-    return get_user_by_email(db, email)
     
 @strawberry.type
-class Query(ParishQuery):
+class Query:
     @strawberry.field
     def user(self, info: Info, id: int) -> Optional[UserType]:
         if not get_current_user(info):

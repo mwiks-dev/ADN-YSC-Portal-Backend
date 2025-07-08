@@ -8,5 +8,6 @@ class Parish(Base):
     name = Column(String(100), index = True)
     deanery_id = Column(Integer, ForeignKey("deaneries.id"))
     
-    deanery = relationship("Deanery", back_populates="parishes")
+    deanery = relationship("Deanery", back_populates="parishes", lazy="joined")
     users = relationship("User", back_populates="parish")
+    outstations = relationship("Outstation", back_populates="parish", cascade="all, delete", passive_deletes = True)
