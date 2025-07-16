@@ -23,12 +23,16 @@ def is_parish_member(user) -> bool:
 def is_authenticated(user) -> bool:
     return user is not None
 
+def is_superuser(user) -> bool:
+    return user and getattr(user, "role", None) == "super_user"
+
 def can_register_users(user) -> bool:
     return any([
         is_chaplain(user),
         is_ysc_coordinator(user),
         is_deanery_moderator(user),
-        is_parish_moderator(user)
+        is_parish_moderator(user),
+        is_superuser(user)
     ])
 
 def get_current_user(info: Info) -> Optional[UserType]:

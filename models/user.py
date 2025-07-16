@@ -9,6 +9,7 @@ class UserRole(str,enum.Enum):
     deanery_moderator = "deanery_moderator"
     ysc_coordinator = "ysc_coordinator"
     ysc_chaplain = "ysc_chaplain"
+    super_user = "super_user"
 
 class User(Base):
     __tablename__ = "users"

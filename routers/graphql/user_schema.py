@@ -5,16 +5,15 @@ from config.db import SessionLocal
 from schemas.graphql.user_type import UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput
 from schemas.graphql.shared_types import UserType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
-from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users
+from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
 from passlib.context import CryptContext
-from routers.graphql.parish_schema import ParishMutation
 from utils.auth_utils import get_current_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     
 @strawberry.type
-class Query:
+class UserQuery:
     @strawberry.field
     def user(self, info: Info, id: int) -> Optional[UserType]:
         if not get_current_user(info):
@@ -25,32 +24,32 @@ class Query:
     @strawberry.field
     def users(self, info: Info) -> List[UserType]:
         user = get_current_user(info)
-        if not is_chaplain(user) or is_ysc_coordinator(user):
+        if not is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user):
             raise Exception("Unauthorized: Only the Chaplain and Coordinators can view all users!")
         db = SessionLocal()
         return get_users(db)
     
 @strawberry.type
-class Mutation(ParishMutation):
+class UserMutation:
     @strawberry.mutation
-    def create_user(self, input: UserInput) -> UserType:
+    def create_user(self, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber, input.role)
+        return create_user(db, input.name, input.email, input.phonenumber,input.password, input.role, input.parish_id)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
         user = get_current_user(info)
         if not user:
             raise Exception("Unauthorized")
-        if not is_chaplain(user) and user.id != input.id:
+        if not (is_chaplain(user) or is_superuser(user) or user.id != input.id):
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password, input.role)
+        return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password, input.role.value, input.parish_id)
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
-        if not is_chaplain(user) or is_ysc_coordinator(user):
+        if not is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user):
             raise Exception("Unauthorized: Only the Chaplain and Coordinators can delete users!")
         db = SessionLocal()
         return delete_user(db, id)
@@ -66,7 +65,7 @@ class Mutation(ParishMutation):
             raise Exception("Unauthorized")
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role, parish_id = input.parish_id )
+        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role.value, input.parish_id )
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role, parish=user.parish)
 
     @strawberry.mutation
@@ -95,4 +94,4 @@ class Mutation(ParishMutation):
         db.refresh(db_user)
         return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+schema = strawberry.Schema(query=UserQuery, mutation=UserMutation)

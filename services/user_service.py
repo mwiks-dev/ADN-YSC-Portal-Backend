@@ -20,22 +20,23 @@ def get_user_by_email(db:Session, user_email:str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, password: str, role:str = "parish_member"):
+def create_user(db: Session, name: str, email: str, phonenumber: str, password: str, role:str = "parish_member", parish_id:int = 57):
     hashed_password = pwd_context.hash(password)
-    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password, role=role)
+    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password, role=role, parish_id=parish_id)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
-def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, password: str,parish:str):
+def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, password: str,role:str, parish_id:int):
     user = db.query(User).filter(User.id == id).first()
     if user:
         user.name = name
         user.email = email
         user.phonenumber = phonenumber
         user.password = pwd_context.hash(password)
-        user.parish = parish
+        user.role = role
+        user.parish_id = parish_id
         db.commit()
         db.refresh(user)
     return user

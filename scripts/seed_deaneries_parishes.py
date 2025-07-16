@@ -98,12 +98,15 @@ def seed_data():
         for parish_name in parish_list:
             existing = db.query(Parish).filter_by(name=parish_name).first()
             if not existing:
-                parish = Parish(name=parish_name, deanery_id=deanery.id,deanery_name=deanery_name)
+                parish = Parish(name=parish_name, deanery_id=deanery.id)
                 db.add(parish)
+                db.commit()
+                db.refresh(parish)
 
                 for outstation_name in [f"{parish_name}"]:
                     outstation = Outstation(name = outstation_name, parish_id = parish.id)
                     db.add(outstation)
+                    db.commit()
 
 
     db.commit()

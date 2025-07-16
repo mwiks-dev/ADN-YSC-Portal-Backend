@@ -1,8 +1,8 @@
-"""Initial migration
+"""Clean revisions
 
-Revision ID: b3188f1a6c87
+Revision ID: 2a996a43d731
 Revises: 
-Create Date: 2025-07-02 15:21:14.752715
+Create Date: 2025-07-16 07:42:27.318307
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b3188f1a6c87'
+revision: str = '2a996a43d731'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,20 +32,27 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=True),
     sa.Column('deanery_id', sa.Integer(), nullable=True),
-    sa.Column('deanery_name', sa.String(length=100), nullable=True),
     sa.ForeignKeyConstraint(['deanery_id'], ['deaneries.id'], ),
-    sa.ForeignKeyConstraint(['deanery_name'], ['deaneries.name'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_parishes_id'), 'parishes', ['id'], unique=False)
     op.create_index(op.f('ix_parishes_name'), 'parishes', ['name'], unique=False)
+    op.create_table('outstations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=True),
+    sa.Column('parish_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['parish_id'], ['parishes.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_outstations_id'), 'outstations', ['id'], unique=False)
+    op.create_index(op.f('ix_outstations_name'), 'outstations', ['name'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=True),
     sa.Column('email', sa.String(length=100), nullable=True),
     sa.Column('phonenumber', sa.String(length=20), nullable=True),
     sa.Column('password', sa.String(length=255), nullable=True),
-    sa.Column('role', sa.Enum('parish_member', 'parish_moderator', 'deanery_moderator', 'ysc_coordinator', 'ysc_chaplain', name='userrole'), nullable=True),
+    sa.Column('role', sa.Enum('parish_member', 'parish_moderator', 'deanery_moderator', 'ysc_coordinator', 'ysc_chaplain', 'super_user', name='userrole'), nullable=True),
     sa.Column('parish_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['parish_id'], ['parishes.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -61,6 +68,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+    op.drop_index(op.f('ix_outstations_name'), table_name='outstations')
+    op.drop_index(op.f('ix_outstations_id'), table_name='outstations')
+    op.drop_table('outstations')
     op.drop_index(op.f('ix_parishes_name'), table_name='parishes')
     op.drop_index(op.f('ix_parishes_id'), table_name='parishes')
     op.drop_table('parishes')
