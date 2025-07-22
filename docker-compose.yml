@@ -3,7 +3,7 @@ version: "3.9"
 services:
   db:
     image: mysql:8.0
-    container_name: adnysc-mysql
+    container_name: adn-db
     restart: always
     env_file:
       - .env
@@ -32,5 +32,22 @@ services:
     command: >
       sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
+  adminer:
+    image: adminer
+    container_name: adnysc-adminer
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    networks:
+      - adn_network
+
 volumes:
   mysql_data:
+
+
+networks:
+  # Define the custom network
+  adn_network:
+    driver: bridge
