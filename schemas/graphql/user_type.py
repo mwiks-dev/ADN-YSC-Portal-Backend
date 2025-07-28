@@ -1,5 +1,6 @@
 import strawberry
 from .shared_types import RoleEnum
+from .shared_types import UserType
 
 @strawberry.input
 class UserInput:
@@ -44,3 +45,8 @@ class ResetPasswordInput:
     email: str
     old_password: str
     new_password: str
+
+@strawberry.type
+class LoginPayload:
+    token: TokenType
+    user: UserType

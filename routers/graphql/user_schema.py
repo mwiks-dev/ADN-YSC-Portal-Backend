@@ -2,7 +2,7 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UserInput, UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload
 from schemas.graphql.shared_types import UserType
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
@@ -69,13 +69,16 @@ class UserMutation:
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role, parish=user.parish)
 
     @strawberry.mutation
-    def login(self, input: LoginInput) -> Optional[TokenType]:
+    def login(self, input: LoginInput) -> Optional[LoginPayload]:
         db = SessionLocal()
         user = authenticate_user(db, input.email, input.password)
         if not user:
             return None
         token = create_access_token(data={"sub": user.email})
-        return TokenType(access_token=token, token_type="bearer")
+        return LoginPayload(
+            token = TokenType(access_token=token, token_type="bearer"),
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role=user.role, parish=user.parish)
+        )
     
     @strawberry.mutation
     def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
