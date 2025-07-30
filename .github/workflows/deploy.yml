@@ -22,7 +22,7 @@ jobs:
           local-dir: './'
           server-dir: ${{ secrets.FTP_DIR }}
 
-      - name: Restart Python App via SSH (Optional)
+      - name: Restart Python App via SSH (Optional!)
         if: success() 
         uses: appleboy/ssh-action@master
         with:
