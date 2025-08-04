@@ -31,7 +31,7 @@ jobs:
           port: ${{ secrets. FTP_PORT }}
           script: |
             cd ${{ secrets.FTP_DIR }}
-            touch passenger_wsgi.py  # Triggers app restart
+            touch passenger_wsgi.py # Triggers app restart
 
       - name: Deployment completed
         run: echo "✅ Deployment to cPanel finished!"
