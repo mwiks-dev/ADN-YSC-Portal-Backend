@@ -28,7 +28,7 @@ def on_startup():
 raw_origins = os.getenv("CORS_ORIGINS", "")
 origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
-#add CORS middleware
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
