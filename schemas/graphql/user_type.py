@@ -1,3 +1,4 @@
+from typing import List, Optional
 import strawberry
 from .shared_types import RoleEnum
 from .shared_types import UserType
@@ -34,6 +35,17 @@ class RegisterInput:
 class LoginInput:
     email: str
     password: str
+
+@strawberry.input
+class SearchInput:
+    search: Optional[str] = ""
+    page: Optional[int] = 1
+    limit: Optional[int] = 10
+
+@strawberry.type
+class UserListResponse:
+    users: List[UserType]
+    totalCount: int
 
 @strawberry.type
 class TokenType:

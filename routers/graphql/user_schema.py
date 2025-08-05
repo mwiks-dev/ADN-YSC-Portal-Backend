@@ -2,12 +2,13 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload
-from schemas.graphql.shared_types import UserType
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse
+from schemas.graphql.shared_types import UserType, RoleEnum
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
 from passlib.context import CryptContext
-from utils.auth_utils import get_current_user
+from utils.auth_utils import get_current_user, can_register_users
+from models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -22,12 +23,36 @@ class UserQuery:
         return get_user_by_id(db, id)
 
     @strawberry.field
-    def users(self, info: Info) -> List[UserType]:
+    def users(self, info: Info, input: SearchInput) -> UserListResponse:
         user = get_current_user(info)
-        if not is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user):
-            raise Exception("Unauthorized: Only the Chaplain and Coordinators can view all users!")
+        if not can_register_users(user):
+            raise Exception("Unauthorized!")
+        
         db = SessionLocal()
-        return get_users(db)
+        query = db.query(User)
+
+        if input.search.strip():  # Only filter by name if search is not empty
+            search = f"%{input.search.strip()}%"
+            query = query.filter(User.name.ilike(search))  # Case-insensitive match
+
+        total_count = query.count()
+        offset = (input.page - 1) * input.limit
+        users = query.offset(offset).limit(input.limit).all()
+
+        result = []
+        for user in users:
+            result.append(
+                UserType(
+                    id=user.id,
+                    name=user.name,
+                    email=user.email,
+                    phonenumber=user.phonenumber,
+                    role=RoleEnum(user.role.value),  # Convert from SQLAlchemy Enum to Strawberry Enum
+                    parish=user.parish
+                )
+            )
+
+        return UserListResponse(users = users, totalCount=total_count)
     
 @strawberry.type
 class UserMutation:

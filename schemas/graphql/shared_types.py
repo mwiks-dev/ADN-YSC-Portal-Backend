@@ -20,6 +20,8 @@ class RoleEnum(enum.Enum):
     deanery_moderator = "deanery_moderator"
     ysc_coordinator = "ysc_coordinator"
     ysc_chaplain = "ysc_chaplain"
+    super_user = "super_user"
+
 
 @strawberry.type
 class UserType:
