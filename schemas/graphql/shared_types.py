@@ -4,6 +4,7 @@ import enum
 from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
 from typing import List
+import datetime
 
 @strawberry.type
 class ParishType:
@@ -29,5 +30,8 @@ class UserType:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     role: RoleEnum
     parish: ParishType = None

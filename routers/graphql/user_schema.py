@@ -69,13 +69,13 @@ class UserMutation:
         if not (is_chaplain(user) or is_superuser(user) or user.id != input.id):
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber, input.password, input.role.value, input.parish_id)
+        return update_user(db, input.id, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id)
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
-        if not is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user):
-            raise Exception("Unauthorized: Only the Chaplain and Coordinators can delete users!")
+        if not can_register_users(user):
+            raise Exception("Unauthorized!")
         db = SessionLocal()
         return delete_user(db, id)
     
@@ -90,8 +90,8 @@ class UserMutation:
             raise Exception("Unauthorized")
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber, input.password, input.role.value, input.parish_id )
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role= user.role, parish=user.parish)
+        user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id )
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, parish=user.parish)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
@@ -102,7 +102,7 @@ class UserMutation:
         token = create_access_token(data={"sub": user.email})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber, role=user.role, parish=user.parish)
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role, parish=user.parish)
         )
     
     @strawberry.mutation

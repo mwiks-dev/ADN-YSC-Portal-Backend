@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -20,20 +20,23 @@ def get_user_by_email(db:Session, user_email:str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, password: str, role:str = "parish_member", parish_id:int = 57):
+def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirth:date ,idnumber:int,baptismref:str, password: str, role:str = "parish_member", parish_id:int = 57):
     hashed_password = pwd_context.hash(password)
-    user = User(name=name, email=email, phonenumber=phonenumber, password=hashed_password, role=role, parish_id=parish_id)
+    user = User(name=name, email=email, phonenumber=phonenumber,dateofbirth=dateofbirth, idnumber=idnumber,baptismref=baptismref, password=hashed_password, role=role, parish_id=parish_id)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
-def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, password: str,role:str, parish_id:int):
+def update_user(db: Session, id: int, name: str, email: str, phonenumber: str,dateofbirth:date ,idnumber:int,baptismref:str, password: str,role:str, parish_id:int):
     user = db.query(User).filter(User.id == id).first()
     if user:
         user.name = name
         user.email = email
         user.phonenumber = phonenumber
+        user.dateofbirth = dateofbirth
+        user.idnumber = idnumber
+        user.baptismref = baptismref
         user.password = pwd_context.hash(password)
         user.role = role
         user.parish_id = parish_id

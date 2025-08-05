@@ -2,12 +2,16 @@ from typing import List, Optional
 import strawberry
 from .shared_types import RoleEnum
 from .shared_types import UserType
+import datetime
 
 @strawberry.input
 class UserInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum
     parish_id: int
@@ -18,6 +22,9 @@ class UpdateUserInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum
     parish_id: int
@@ -27,6 +34,9 @@ class RegisterInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum 
     parish_id: int
