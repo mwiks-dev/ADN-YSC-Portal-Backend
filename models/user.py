@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Date
 from sqlalchemy.orm import relationship
 from config.db import Base
 import enum
@@ -17,6 +17,9 @@ class User(Base):
     name = Column(String(100))
     email = Column(String(100), unique=True, index=True)
     phonenumber = Column(String(20))
+    dateofbirth = Column(Date)
+    idnumber = Column(Integer, unique = True)
+    baptismref = Column(String(30))
     password = Column(String(255))
     role = Column(Enum(UserRole), default=UserRole.parish_member)
     

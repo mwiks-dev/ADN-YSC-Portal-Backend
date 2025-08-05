@@ -1,11 +1,17 @@
+from typing import List, Optional
 import strawberry
 from .shared_types import RoleEnum
+from .shared_types import UserType
+import datetime
 
 @strawberry.input
 class UserInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum
     parish_id: int
@@ -16,6 +22,9 @@ class UpdateUserInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum
     parish_id: int
@@ -25,6 +34,9 @@ class RegisterInput:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     password: str
     role: RoleEnum 
     parish_id: int
@@ -33,6 +45,17 @@ class RegisterInput:
 class LoginInput:
     email: str
     password: str
+
+@strawberry.input
+class SearchInput:
+    search: Optional[str] = ""
+    page: Optional[int] = 1
+    limit: Optional[int] = 10
+
+@strawberry.type
+class UserListResponse:
+    users: List[UserType]
+    totalCount: int
 
 @strawberry.type
 class TokenType:
@@ -44,3 +67,8 @@ class ResetPasswordInput:
     email: str
     old_password: str
     new_password: str
+
+@strawberry.type
+class LoginPayload:
+    token: TokenType
+    user: UserType

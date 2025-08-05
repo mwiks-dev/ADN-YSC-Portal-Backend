@@ -4,6 +4,7 @@ import enum
 from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
 from typing import List
+import datetime
 
 @strawberry.type
 class ParishType:
@@ -20,6 +21,8 @@ class RoleEnum(enum.Enum):
     deanery_moderator = "deanery_moderator"
     ysc_coordinator = "ysc_coordinator"
     ysc_chaplain = "ysc_chaplain"
+    super_user = "super_user"
+
 
 @strawberry.type
 class UserType:
@@ -27,5 +30,8 @@ class UserType:
     name: str
     email: str
     phonenumber: str
+    dateofbirth: datetime.date
+    idnumber: int
+    baptismref: str
     role: RoleEnum
     parish: ParishType = None
