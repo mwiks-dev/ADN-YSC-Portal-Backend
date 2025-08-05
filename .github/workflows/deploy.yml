@@ -1,0 +1,37 @@
+name: Deploy Python App to cPanel
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: FTP Deploy to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: './'
+          server-dir: ${{ secrets.FTP_DIR }}
+
+      - name: Restart Python App via SSH (Optional!)
+        if: success() 
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          port: ${{ secrets. FTP_PORT }}
+          script: |
+            cd ${{ secrets.FTP_DIR }}
+            touch passenger_wsgi.py # Triggers app restart
+
+      - name: Deployment completed
+        run: echo "✅ Deployment to cPanel finished!"
