@@ -23,6 +23,11 @@ class RoleEnum(enum.Enum):
     ysc_chaplain = "ysc_chaplain"
     super_user = "super_user"
 
+@strawberry.enum
+class UserStatus(enum.Enum):
+    active_member = "Active"
+    archived_member = "Archived"
+    transitioned_member = "Transitioned"
 
 @strawberry.type
 class UserType:
@@ -34,4 +39,5 @@ class UserType:
     idnumber: int
     baptismref: str
     role: RoleEnum
+    status: UserStatus
     parish: ParishType = None

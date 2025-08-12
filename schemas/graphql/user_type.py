@@ -1,7 +1,6 @@
 from typing import List, Optional
 import strawberry
-from .shared_types import RoleEnum
-from .shared_types import UserType
+from .shared_types import UserType,RoleEnum, UserStatus
 import datetime
 
 @strawberry.input
@@ -14,6 +13,7 @@ class UserInput:
     baptismref: str
     password: str
     role: RoleEnum
+    status: UserStatus
     parish_id: int
 
 @strawberry.input
@@ -27,6 +27,7 @@ class UpdateUserInput:
     baptismref: str
     password: str
     role: RoleEnum
+    status: UserStatus
     parish_id: int
 
 @strawberry.input
@@ -39,6 +40,7 @@ class RegisterInput:
     baptismref: str
     password: str
     role: RoleEnum 
+    status: UserStatus
     parish_id: int
 
 @strawberry.input

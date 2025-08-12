@@ -1,9 +1,10 @@
+import datetime
 import strawberry
 from strawberry.types import Info
-from typing import List, Optional
+from typing import Optional
 from config.db import SessionLocal
 from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse
-from schemas.graphql.shared_types import UserType, RoleEnum
+from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
 from passlib.context import CryptContext
@@ -47,7 +48,8 @@ class UserQuery:
                     name=user.name,
                     email=user.email,
                     phonenumber=user.phonenumber,
-                    role=RoleEnum(user.role.value),  # Convert from SQLAlchemy Enum to Strawberry Enum
+                    role=RoleEnum(user.role.value), 
+                    status = UserStatus(user.userstatus.value), # Convert from SQLAlchemy Enum to Strawberry Enum
                     parish=user.parish
                 )
             )
@@ -102,7 +104,7 @@ class UserMutation:
         token = create_access_token(data={"sub": user.email})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role, parish=user.parish)
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish)
         )
     
     @strawberry.mutation
@@ -121,5 +123,29 @@ class UserMutation:
         db.commit()
         db.refresh(db_user)
         return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
+    
+    @strawberry.mutation
+    def transition_parish_member(self,info:Info,user_id:int) -> UserType:
+        db = SessionLocal()
+        user = get_user_by_id(info)
+
+        if not (user or can_register_users(user)):
+            print(user)
+            raise Exception(f"User with id {user_id} not found")
+
+        if user.dateofbirth is None:
+            raise Exception("Date of birth not provided")
+
+        current_year = datetime.datetime.now().year
+        birth_year = user.dateofbirth.year
+        age = current_year - birth_year
+
+        if age > 26:
+            user.status = UserStatus.transitioned_member
+            db.commit()
+            db.refresh(user)
+
+        return user
+        
 
 schema = strawberry.Schema(query=UserQuery, mutation=UserMutation)
