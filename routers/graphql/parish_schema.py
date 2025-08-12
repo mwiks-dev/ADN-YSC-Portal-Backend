@@ -7,7 +7,7 @@ from config.db import SessionLocal
 from models.deanery import Deanery
 from models.parish import Parish
 from models.outstation import Outstation
-from schemas.graphql.parish_type import ParishInput,UpdateParishDetails
+from schemas.graphql.parish_type import ParishInput,UpdateParishDetails, SearchInput, ParishListResponse
 from schemas.graphql.shared_types import UserType, ParishType
 from services.parish_service import get_parish_by_id,get_parishes,get_parish_by_name,get_all_users_of_parish,get_parishes_by_deanery,create_parish,delete_parish,update_parish
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, is_superuser
@@ -24,9 +24,18 @@ class ParishQuery:
         return None  # neither provided
     
     @strawberry.field
-    def parishes(self, info:Info) -> List[ParishType]:
+    def parishes(self, info:Info, input: SearchInput) -> ParishListResponse:
         db=SessionLocal()
-        return get_parishes(db)
+        query = db.query(Parish)
+
+        if input.search.strip():
+            search = f"%{input.search.strip()}%"
+            query = query.filter(Parish.name.ilike(search))
+
+        total_count = query.count()
+        offset = (input.page - 1) * input.limit
+        parishes = query.offset(offset).limit(input.limit).all()
+        return ParishListResponse(parishes=parishes, totalCount=total_count)
     
     @strawberry.field
     def parishioners(self,id:int)-> List[UserType]:

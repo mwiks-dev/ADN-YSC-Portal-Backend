@@ -50,7 +50,7 @@ class LoginInput:
 class SearchInput:
     search: Optional[str] = ""
     page: Optional[int] = 1
-    limit: Optional[int] = 10
+    limit: Optional[int] = 100
 
 @strawberry.type
 class UserListResponse:

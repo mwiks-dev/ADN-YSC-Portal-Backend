@@ -47,12 +47,15 @@ class UserQuery:
                     name=user.name,
                     email=user.email,
                     phonenumber=user.phonenumber,
+                    dateofbirth = user.dateofbirth,
+                    idnumber=user.idnumber,
+                    baptismref=user.baptismref,
                     role=RoleEnum(user.role.value),  # Convert from SQLAlchemy Enum to Strawberry Enum
                     parish=user.parish
                 )
             )
 
-        return UserListResponse(users = users, totalCount=total_count)
+        return UserListResponse(users = result, totalCount=total_count)
     
 @strawberry.type
 class UserMutation:
