@@ -11,6 +11,11 @@ class UserRole(str,enum.Enum):
     ysc_chaplain = "ysc_chaplain"
     super_user = "super_user"
 
+class UserStatus(str, enum.Enum):
+    active_member = "Active"
+    archived_member = "Archived"
+    transitioned_member = "Transitioned"
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key = True, index=True)
@@ -22,6 +27,7 @@ class User(Base):
     baptismref = Column(String(30))
     password = Column(String(255))
     role = Column(Enum(UserRole), default=UserRole.parish_member)
+    status = Column(Enum(UserStatus), default = UserStatus.active_member)
     
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")

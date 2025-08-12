@@ -59,7 +59,7 @@ class UserMutation:
     @strawberry.mutation
     def create_user(self, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber,input.password, input.role, input.parish_id)
+        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role, input.parish_id)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
