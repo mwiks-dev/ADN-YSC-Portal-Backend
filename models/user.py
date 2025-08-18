@@ -22,6 +22,7 @@ class User(Base):
     baptismref = Column(String(30))
     password = Column(String(255))
     role = Column(Enum(UserRole), default=UserRole.parish_member)
+    profile_pic = Column(String(255), nullable=True)
     
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")
