@@ -3,7 +3,7 @@ import strawberry
 import enum
 from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
-from typing import List
+from typing import List, Optional
 import datetime
 
 @strawberry.type
@@ -41,3 +41,4 @@ class UserType:
     role: RoleEnum
     status: UserStatus
     parish: ParishType = None
+    profile_pic: Optional[str] = None
