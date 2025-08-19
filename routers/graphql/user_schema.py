@@ -60,7 +60,7 @@ class UserQuery:
             )
             print(user.status)
 
-        return UserListResponse(users = users, totalCount=total_count)
+        return UserListResponse(users = result, totalCount=total_count)
     
 @strawberry.type
 class UserMutation:
