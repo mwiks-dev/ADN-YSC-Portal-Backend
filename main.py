@@ -6,6 +6,7 @@ from scripts.seed_deaneries_parishes import seed_data
 from scripts.seed_super_user import seed_super_user
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
@@ -14,6 +15,9 @@ app = FastAPI()
 graphql_app = GraphQLRouter(schema)
 
 app.include_router(graphql_app, prefix="/graphql")
+
+# Serve uploaded profile pictures
+app.mount("/static/profile_pics", StaticFiles(directory="static/profile_pics"), name="profile_pics")
 
 @app.get("/")
 def read_root():

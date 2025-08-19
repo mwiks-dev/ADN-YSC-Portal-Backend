@@ -3,7 +3,7 @@ import strawberry
 import enum
 from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
-from typing import List
+from typing import List, Optional
 import datetime
 
 @strawberry.type
@@ -23,6 +23,11 @@ class RoleEnum(enum.Enum):
     ysc_chaplain = "ysc_chaplain"
     super_user = "super_user"
 
+@strawberry.enum
+class UserStatus(enum.Enum):
+    active_member = "Active"
+    archived_member = "Archived"
+    transitioned_member = "Transitioned"
 
 @strawberry.type
 class UserType:
@@ -34,4 +39,6 @@ class UserType:
     idnumber: int
     baptismref: str
     role: RoleEnum
+    status: UserStatus
+    profile_pic: Optional[str] = None
     parish: ParishType = None
