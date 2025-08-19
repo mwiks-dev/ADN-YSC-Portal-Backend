@@ -45,13 +45,6 @@ class RegisterInput:
 class LoginInput:
     email: str
     password: str
-
-@strawberry.input
-class SearchInput:
-    search: Optional[str] = ""
-    page: Optional[int] = 1
-    limit: Optional[int] = 100
-
 @strawberry.type
 class UserListResponse:
     users: List[UserType]

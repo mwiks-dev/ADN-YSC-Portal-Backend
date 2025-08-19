@@ -3,7 +3,7 @@ import strawberry
 import enum
 from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
-from typing import List
+from typing import List, Optional
 import datetime
 
 @strawberry.type
@@ -35,3 +35,9 @@ class UserType:
     baptismref: str
     role: RoleEnum
     parish: ParishType = None
+    
+@strawberry.input
+class SearchInput:
+    search: Optional[str] = ""
+    page: Optional[int] = 1
+    limit: Optional[int] = 10

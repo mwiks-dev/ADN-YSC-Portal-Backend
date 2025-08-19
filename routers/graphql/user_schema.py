@@ -2,8 +2,8 @@ import strawberry
 from strawberry.types import Info
 from typing import List, Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse
-from schemas.graphql.shared_types import UserType, RoleEnum
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, UserListResponse
+from schemas.graphql.shared_types import UserType, RoleEnum, SearchInput
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
 from passlib.context import CryptContext

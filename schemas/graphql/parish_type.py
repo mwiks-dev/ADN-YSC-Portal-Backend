@@ -14,11 +14,11 @@ class UpdateParishDetails:
     name: str
     deanery: str
 
-@strawberry.input
-class SearchInput:
-    search: Optional[str] = ""
-    page: Optional[int] = 1
-    limit: Optional[int] = 100
+# @strawberry.input
+# class SearchInput:
+#     search: Optional[str] = ""
+#     page: Optional[int] = 1
+#     limit: Optional[int] = 100
 
 @strawberry.type
 class ParishListResponse:
