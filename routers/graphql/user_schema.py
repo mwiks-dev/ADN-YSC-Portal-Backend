@@ -32,7 +32,7 @@ class UserQuery:
             raise Exception("Unauthorized!")
         
         db = SessionLocal()
-        query = db.query(User).order_by(User.id.desc()).order_by(User.parish_id.asc())
+        query = db.query(User).order_by(User.id.desc(), User.parish_id.asc())
 
         if input.search.strip():  # Only filter by name if search is not empty
             search = f"%{input.search.strip()}%"
