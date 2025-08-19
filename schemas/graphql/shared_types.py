@@ -40,5 +40,5 @@ class UserType:
     baptismref: str
     role: RoleEnum
     status: UserStatus
-    parish: ParishType = None
     profile_pic: Optional[str] = None
+    parish: ParishType = None

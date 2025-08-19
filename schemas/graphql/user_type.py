@@ -14,6 +14,7 @@ class UserInput:
     password: str
     role: RoleEnum
     status: UserStatus
+    profile_pic: Optional[str] 
     parish_id: int
 
 @strawberry.input
@@ -41,7 +42,9 @@ class RegisterInput:
     password: str
     role: RoleEnum 
     status: UserStatus
+    profile_pic: Optional[str]
     parish_id: int
+    
 
 @strawberry.input
 class LoginInput:

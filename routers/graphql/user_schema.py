@@ -50,11 +50,15 @@ class UserQuery:
                     name=user.name,
                     email=user.email,
                     phonenumber=user.phonenumber,
+                    dateofbirth = user.dateofbirth,
+                    idnumber = user.idnumber,
+                    baptismref = user.baptismref,
                     role=RoleEnum(user.role.value), 
-                    status = UserStatus(user.userstatus.value), # Convert from SQLAlchemy Enum to Strawberry Enum
+                    status = UserStatus(user.status.value), # Convert from SQLAlchemy Enum to Strawberry Enum
                     parish=user.parish
                 )
             )
+            print(user.status)
 
         return UserListResponse(users = users, totalCount=total_count)
     
@@ -63,7 +67,7 @@ class UserMutation:
     @strawberry.mutation
     def create_user(self, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role, input.parish_id)
+        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role, input.status,input.profile_pic, input.parish_id)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -73,7 +77,7 @@ class UserMutation:
         if not (is_chaplain(user) or is_superuser(user) or user.id != input.id):
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id)
+        return update_user(db, input.id, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value, input.parish_id)
 
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
@@ -94,8 +98,8 @@ class UserMutation:
             raise Exception("Unauthorized")
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id )
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, parish=user.parish)
+        user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value,input.status.value, input.profile_pic, input.parish_id )
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
