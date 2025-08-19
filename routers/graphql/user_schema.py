@@ -1,3 +1,4 @@
+from sqlalchemy import desc
 import strawberry
 from strawberry.types import Info
 from typing import List, Optional
@@ -37,7 +38,12 @@ class UserQuery:
 
         total_count = query.count()
         offset = (input.page - 1) * input.limit
-        users = query.offset(offset).limit(input.limit).all()
+        users = (
+            query.order_by(User.id.desc())
+                 .offset(offset)
+                 .limit(input.limit)
+                 .all()
+        )
 
         result = []
         for user in users:
@@ -62,7 +68,7 @@ class UserMutation:
     @strawberry.mutation
     def create_user(self, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber,input.password, input.role, input.parish_id)
+        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -93,7 +99,7 @@ class UserMutation:
             raise Exception("Unauthorized")
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id )
+        user = create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.parish_id )
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, parish=user.parish)
 
     @strawberry.mutation

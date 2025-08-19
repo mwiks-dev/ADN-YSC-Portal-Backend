@@ -27,7 +27,7 @@ class ParishQuery:
     def parishes(self, info:Info, input: SearchInput) -> ParishListResponse:
         db=SessionLocal()
         query = db.query(Parish)
-
+        
         if input.search.strip():
             search = f"%{input.search.strip()}%"
             query = query.filter(Parish.name.ilike(search))
