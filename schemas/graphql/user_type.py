@@ -55,8 +55,8 @@ class LoginInput:
 class SearchInput:
     search: Optional[str] = ""
     page: Optional[int] = 1
-    limit: Optional[int] = 100
-
+    limit: Optional[int] = 10
+    parish_id: Optional[int] = strawberry.field(default=None, name="parishId") 
 @strawberry.type
 class UserListResponse:
     users: List[UserType]

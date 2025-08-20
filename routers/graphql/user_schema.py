@@ -32,11 +32,14 @@ class UserQuery:
             raise Exception("Unauthorized!")
         
         db = SessionLocal()
-        query = db.query(User)
+        query = db.query(User).order_by(User.id.desc(), User.parish_id.asc())
 
         if input.search.strip():  # Only filter by name if search is not empty
             search = f"%{input.search.strip()}%"
             query = query.filter(User.name.ilike(search))  # Case-insensitive match
+            
+        if input.parish_id is not None:
+            query = query.filter(User.parish_id == input.parish_id)
 
         total_count = query.count()
         offset = (input.page - 1) * input.limit
@@ -58,7 +61,6 @@ class UserQuery:
                     parish=user.parish
                 )
             )
-            print(user.status)
 
         return UserListResponse(users = result, totalCount=total_count)
     
