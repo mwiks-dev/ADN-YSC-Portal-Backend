@@ -4,7 +4,7 @@ from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
@@ -12,6 +12,8 @@ from passlib.context import CryptContext
 from utils.auth_utils import get_current_user, can_register_users
 from models.user import User
 import imghdr
+import pprint
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -115,7 +117,7 @@ class UserMutation:
             user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish)
         )
     @strawberry.mutation 
-    async def upload_profile_pic(self,user_id:int, file:Upload) -> str:
+    async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
         #validate file type
         allowed_types = ['jpeg','png','jpg']
         file_type = imghdr.what(file.file)
@@ -144,7 +146,22 @@ class UserMutation:
         db.commit()
         db.refresh(user)
 
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, parish=user.parish, status = user.status, profile_pic = user.profile_pic)
+        return UploadProfilePicResponse(
+            message="Profile picture updated successfully!",
+            user=UserType(
+                id=user.id,
+                name=user.name,
+                email=user.email,
+                phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth,
+                idnumber=user.idnumber,
+                baptismref=user.baptismref,
+                role=user.role,
+                parish=user.parish,
+                status=user.status,
+                profile_pic=user.profile_pic,
+        )
+    )
 
     @strawberry.mutation
     def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
