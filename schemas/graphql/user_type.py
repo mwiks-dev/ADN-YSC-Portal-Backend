@@ -42,7 +42,7 @@ class RegisterInput:
     password: str
     role: RoleEnum 
     status: UserStatus
-    profile_pic: Optional[str] = None
+    profile_pic: Optional[str] = strawberry.field(default=None)
     parish_id: int
     
 
