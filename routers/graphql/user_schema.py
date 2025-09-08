@@ -118,7 +118,7 @@ class UserMutation:
         )
     @strawberry.mutation 
     async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
-        #validate file type
+    
         allowed_types = ['jpeg','png','jpg']
         file_type = imghdr.what(file.file)
         if file_type not in allowed_types:
