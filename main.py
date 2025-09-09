@@ -7,12 +7,14 @@ from scripts.seed_super_user import seed_super_user
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import strawberry
 
 load_dotenv()
 
 app = FastAPI()
 
-graphql_app = GraphQLRouter(schema)
+graphql_app = GraphQLRouter(schema, multipart_uploads_enabled=True)
+
 
 app.include_router(graphql_app, prefix="/graphql")
 

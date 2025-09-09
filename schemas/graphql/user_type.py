@@ -14,8 +14,8 @@ class UserInput:
     password: str
     role: RoleEnum
     status: UserStatus
-    profile_pic: Optional[str] 
     parish_id: int
+    profile_pic: Optional[str] 
 
 @strawberry.input
 class UpdateUserInput:
@@ -42,9 +42,8 @@ class RegisterInput:
     password: str
     role: RoleEnum 
     status: UserStatus
-    profile_pic: Optional[str] = strawberry.field(default=None)
     parish_id: int
-    
+    profile_pic: Optional[str] = strawberry.field(default=None)   
 
 @strawberry.input
 class LoginInput:
@@ -76,4 +75,10 @@ class ResetPasswordInput:
 @strawberry.type
 class LoginPayload:
     token: TokenType
+    user: UserType
+    
+# return type after uploading profile pic 
+@strawberry.type
+class UploadProfilePicResponse:
+    message: str
     user: UserType
