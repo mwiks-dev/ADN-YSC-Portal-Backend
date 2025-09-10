@@ -25,3 +25,8 @@ class ParishSearchInput:
 class ParishListResponse:
     parishes: List[ParishType]
     totalCount: int
+
+@strawberry.type
+class CreateParishResponse:
+    message: str
+    parish: ParishType

@@ -77,7 +77,6 @@ class LoginPayload:
     token: TokenType
     user: UserType
     
-# return type after uploading profile pic 
 @strawberry.type
 class UploadProfilePicResponse:
     message: str
