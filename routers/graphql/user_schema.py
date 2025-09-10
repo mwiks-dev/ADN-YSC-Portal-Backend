@@ -4,7 +4,7 @@ from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
@@ -12,9 +12,11 @@ from passlib.context import CryptContext
 from utils.auth_utils import get_current_user, can_register_users
 from models.user import User
 import imghdr
+import os
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
     
 @strawberry.type
 class UserQuery:
@@ -56,6 +58,7 @@ class UserQuery:
                     dateofbirth = user.dateofbirth,
                     idnumber = user.idnumber,
                     baptismref = user.baptismref,
+                    profile_pic= user.profile_pic,
                     role=RoleEnum(user.role.value), 
                     status = UserStatus(user.status.value), # Convert from SQLAlchemy Enum to Strawberry Enum
                     parish=user.parish
@@ -69,7 +72,7 @@ class UserMutation:
     @strawberry.mutation
     def create_user(self, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role, input.status,input.profile_pic, input.parish_id)
+        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value,input.profile_pic, input.parish_id)
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -112,11 +115,15 @@ class UserMutation:
         token = create_access_token(data={"sub": user.email})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish)
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic)
         )
     @strawberry.mutation 
-    async def upload_profile_pic(self,user_id:int, file:Upload) -> str:
-        #validate file type
+    async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
+        db = SessionLocal()
+        user = db.query(User).get(user_id)
+        if not user:
+            raise Exception("User not found.")
+        
         allowed_types = ['jpeg','png','jpg']
         file_type = imghdr.what(file.file)
         if file_type not in allowed_types:
@@ -131,20 +138,30 @@ class UserMutation:
         contents = await file.read()
         filename = f"user_{user_id}_profile.{file_type}"
         filepath = f"static/profile_pics/{filename}"
-
         with open(filepath, "wb") as f:
-            f.write(file.file.read())
-
+            f.write(contents) 
         # Update the user in DB
-        db = SessionLocal()
-        user = db.query(User).get(user_id)
-        if not user:
-            raise Exception("User not found.")
+      
         user.profile_pic = filename
         db.commit()
         db.refresh(user)
 
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, parish=user.parish, status = user.status, profile_pic = user.profile_pic)
+        return UploadProfilePicResponse(
+            message="Profile picture updated successfully!",
+            user=UserType(
+                id=user.id,
+                name=user.name,
+                email=user.email,
+                phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth,
+                idnumber=user.idnumber,
+                baptismref=user.baptismref,
+                role=user.role,
+                parish=user.parish,
+                status=user.status,
+                profile_pic=user.profile_pic,
+        )
+    )
 
     @strawberry.mutation
     def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
