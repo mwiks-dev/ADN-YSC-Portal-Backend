@@ -95,11 +95,10 @@ class ParishMutation:
     
     @strawberry.mutation
     def delete_parish(self,info:Info, id:int) -> Optional[ParishType]:
-        db = SessionLocal()
         user = get_current_user(info)
-        if not is_chaplain(user) or is_ysc_coordinator(user):
+        if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
             raise Exception("Only the Chaplain or Coordinator can delete a parish!")
-        db.refresh()
+        db = SessionLocal()
         return delete_parish(db,id)
     
 
