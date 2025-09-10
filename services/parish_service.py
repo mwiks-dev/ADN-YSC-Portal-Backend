@@ -19,10 +19,10 @@ def get_all_users_of_parish(db:Session,parish_id:int):
 def get_parish_by_name(db:Session,name:str):
     return db.query(Parish).options(joinedload(Parish.deanery)).filter_by(name=name).first()
 
-def create_parish(db:Session, name:str,deanery:str):
+def create_parish(db:Session, name:str,deanery_id:int):
     parish = Parish(
         name = name,
-        deanery = deanery
+        deanery_id = deanery_id
     )
     db.add(parish)
     db.commit()
@@ -30,12 +30,12 @@ def create_parish(db:Session, name:str,deanery:str):
     return parish
         
 
-def update_parish(db:Session,id:int,name:str,deanery:str):
+def update_parish(db:Session,id:int,name:str,deanery_id:int):
     parish = db.query(Parish).filter(Parish.id == id).first()
     
     if parish:
         parish.name = name
-        parish.deanery = deanery
+        parish.deanery_id = deanery_id
         db.commit()
         db.refresh(parish)
     return parish
