@@ -52,18 +52,21 @@ class ParishMutation:
     @strawberry.mutation
     def create_parish(self, info:Info, input:ParishInput, outstations: Optional[List[str]] = None) -> ParishType:
         db = SessionLocal()
+        existing_parish = get_parish_by_name(db, input.name)
         current_user = get_current_user(info)
+        if existing_parish:
+            raise Exception("Parish with this name already exists!")
         if not current_user:
             raise Exception("Unauthorized!")
-        if not is_chaplain(current_user) or is_ysc_coordinator(current_user):
+        if not( is_chaplain(current_user) or is_ysc_coordinator(current_user) or is_superuser(current_user)):
             raise Exception("Unauthorized: Only the Chaplain and Coordinators can create a parish!")
-        deanery = db.query(Deanery).filter_by(name = input.deanery).first()
+        deanery = db.query(Deanery).filter_by(id = input.deanery_id).first()
         if not deanery:
             raise Exception("Deanery not found")
-        parish = Parish(name= input.name, deanery_id=deanery.id)
-        db.add(parish)
-        db.commit()
-        db.refresh(parish)
+        parish = create_parish(db, input.name, input.deanery_id)
+        # db.add(parish)
+        # db.commit()
+        # db.refresh(parish)
 
         # Optional outstations
         if outstations:

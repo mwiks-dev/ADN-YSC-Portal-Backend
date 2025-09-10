@@ -5,7 +5,7 @@ from .shared_types import ParishType
 @strawberry.input
 class ParishInput:
     name: str
-    deanery: str
+    deanery_id: int
     outstations: Optional[List[str]] = None
  
 @strawberry.input
