@@ -12,7 +12,7 @@ class ParishInput:
 class UpdateParishDetails:
     id: int
     name: str
-    deanery: str
+    deanery_id: int
 
 @strawberry.input
 class ParishSearchInput:

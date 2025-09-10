@@ -30,12 +30,12 @@ def create_parish(db:Session, name:str,deanery_id:int):
     return parish
         
 
-def update_parish(db:Session,id:int,name:str,deanery:str):
+def update_parish(db:Session,id:int,name:str,deanery_id:int):
     parish = db.query(Parish).filter(Parish.id == id).first()
     
     if parish:
         parish.name = name
-        parish.deanery = deanery
+        parish.deanery_id = deanery_id
         db.commit()
         db.refresh(parish)
     return parish
