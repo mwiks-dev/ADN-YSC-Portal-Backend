@@ -30,6 +30,6 @@ class User(Base):
     status = Column(Enum(UserStatus), default = UserStatus.active_member)
     profile_pic = Column(String(255), nullable=True)
 
-    
+    membership_no = Column(String(10), nullable=True)
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")
