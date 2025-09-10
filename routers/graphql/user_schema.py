@@ -195,29 +195,7 @@ class UserMutation:
         db.commit()
         db.refresh(db_user)
         return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
-    
-    @strawberry.mutation
-    def transition_parish_member(self,info:Info,user_id:int) -> UserType:
-        db = SessionLocal()
-        user = get_user_by_id(info)
 
-        if not (user or can_register_users(user)):
-            print(user)
-            raise Exception(f"User with id {user_id} not found")
-
-        if user.dateofbirth is None:
-            raise Exception("Date of birth not provided")
-
-        current_year = datetime.datetime.now().year
-        birth_year = user.dateofbirth.year
-        age = current_year - birth_year
-
-        if age > 26:
-            user.status = UserStatus.transitioned_member
-            db.commit()
-            db.refresh(user)
-
-        return user
         
 
 schema = strawberry.Schema(query=UserQuery, mutation=UserMutation)
