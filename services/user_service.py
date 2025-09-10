@@ -1,4 +1,4 @@
-from models.user import User, UserStatus
+from models.user import User, UserStatus, UserRole
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError

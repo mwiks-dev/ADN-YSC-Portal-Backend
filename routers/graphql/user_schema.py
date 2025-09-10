@@ -10,9 +10,10 @@ from services.user_service import get_user_by_id, get_user_by_email, get_users, 
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser
 from passlib.context import CryptContext
 from utils.auth_utils import get_current_user, can_register_users
-from models.user import User
+from models.user import User, UserRole
 import imghdr
 import os
+from datetime import date
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -104,6 +105,21 @@ class UserMutation:
         if not can_register_users(current_user):
             raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
         user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value,input.status.value, input.profile_pic, input.parish_id )
+        print(f"User '{user.name}' registered. Checking for members to archive...")
+        if user.role == UserRole.parish_member and user.dateofbirth:
+                today = date.today()
+                age = today.year - user.dateofbirth.year - ((today.month, today.day) < (user.dateofbirth.month, user.dateofbirth.day))
+                
+                if age >= 27:
+                    print(f"User '{user.name}' is {age} years old. Automatically setting status to Archived.")
+                    user.status = UserStatus.archived_member.value
+                else:
+                    print(f"User '{user.name}' is {age} years old. Status remains Active.")
+
+            # 5. Commit all changes to the database
+        db.commit()
+        db.refresh(user)
+        
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish)
 
     @strawberry.mutation

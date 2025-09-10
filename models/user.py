@@ -14,7 +14,6 @@ class UserRole(str,enum.Enum):
 class UserStatus(str, enum.Enum):
     active_member = "Active"
     archived_member = "Archived"
-    transitioned_member = "Transitioned"
 
 class User(Base):
     __tablename__ = "users"
@@ -27,7 +26,7 @@ class User(Base):
     baptismref = Column(String(30))
     password = Column(String(255))
     role = Column(Enum(UserRole), default=UserRole.parish_member)
-    status = Column(Enum(UserStatus), default = UserStatus.active_member)
+    status = Column(Enum(UserStatus))
     profile_pic = Column(String(255), nullable=True)
 
     membership_no = Column(String(10), nullable=True)
