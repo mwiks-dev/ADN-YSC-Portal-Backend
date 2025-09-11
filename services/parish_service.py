@@ -20,15 +20,11 @@ def get_parish_by_name(db:Session,name:str):
     return db.query(Parish).options(joinedload(Parish.deanery)).filter_by(name=name).first()
 
 def create_parish(db:Session, name:str,deanery_id:int):
-    parish = Parish(
-        name = name,
-        deanery_id = deanery_id
-    )
+    parish = Parish(name = name,deanery_id = deanery_id)
     db.add(parish)
     db.commit()
     db.refresh(parish)
     return parish
-        
 
 def update_parish(db:Session,id:int,name:str,deanery_id:int):
     parish = db.query(Parish).filter(Parish.id == id).first()
