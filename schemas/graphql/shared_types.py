@@ -1,17 +1,29 @@
 from __future__ import annotations
 import strawberry
 import enum
-from .deanery_type import DeaneryType
 from .outstation_type import OutstationType
 from typing import List, Optional
 import datetime
+
+@strawberry.type
+class ZoneType:
+    id: int
+    name: str
+    deaneries: List[DeaneryType]
+
+@strawberry.type
+class DeaneryType:
+    id: int
+    name: str
+    zone:  ZoneType
+    parishes: List[ParishType]
 
 @strawberry.type
 class ParishType:
     id: int
     name: str
     deanery: DeaneryType
-    outstations: list[OutstationType]
+    outstations: List[OutstationType]
     users: List[UserType] = None
 
 @strawberry.enum
