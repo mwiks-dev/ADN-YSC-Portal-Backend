@@ -4,7 +4,7 @@ from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput, UpdateUserPasswordResponse
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser, get_current_user
@@ -179,12 +179,13 @@ class UserMutation:
     )
 
     @strawberry.mutation
-    def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
+    def reset_password(self, info:Info, input: ResetPasswordInput) -> UpdateUserPasswordResponse:
         user = get_current_user(info)
         if not user or user.email != input.email:
             raise Exception("Unauthorized: Token mismatch or invalid user")
         db = SessionLocal()
         db_user = get_user_by_email(db, input.email)
+        print(input.old_password, db_user.email)
         if not db_user:
             raise Exception("User not found")
         if not pwd_context.verify(input.old_password, db_user.password):
@@ -193,7 +194,23 @@ class UserMutation:
         db_user.password = pwd_context.hash(input.new_password)
         db.commit()
         db.refresh(db_user)
-        return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
+        
+        return UpdateUserPasswordResponse(
+            message="Password reset successful",
+            user=UserType(
+                id=user.id,
+                name=user.name,
+                email=user.email,
+                phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth,
+                idnumber=user.idnumber,
+                baptismref=user.baptismref,
+                role=user.role,
+                parish=user.parish,
+                status=user.status,
+                profile_pic=user.profile_pic,
+            )
+        )
     
     @strawberry.mutation
     def update_user_role(self, info:Info, input:UpdateUserRoleInput) -> UserType:
