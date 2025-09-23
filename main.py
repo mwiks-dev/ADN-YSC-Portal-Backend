@@ -25,10 +25,10 @@ app.mount("/static/profile_pics", StaticFiles(directory="static/profile_pics"), 
 def read_root():
     return {"message": "Hello, World!"}
 
-@app.on_event("startup")
-def on_startup():
-    seed_data()
-    seed_super_user()
+# @app.on_event("startup")
+# def on_startup():
+#     seed_data()
+#     seed_super_user()
 
 #get origins from .env
 raw_origins = os.getenv("CORS_ORIGINS", "")
