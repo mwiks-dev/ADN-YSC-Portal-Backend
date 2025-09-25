@@ -86,3 +86,8 @@ class UploadProfilePicResponse:
 class UpdateUserRoleInput:
     user_id: int
     new_role: RoleEnum
+    
+@strawberry.type
+class UpdateUserPasswordResponse:
+    message: str
+    user: UserType
