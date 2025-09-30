@@ -60,8 +60,10 @@ class UserQuery:
                     baptismref = user.baptismref,
                     profile_pic= user.profile_pic,
                     role=RoleEnum(user.role.value), 
-                    status = UserStatus(user.status.value), # Convert from SQLAlchemy Enum to Strawberry Enum
-                    parish=user.parish
+                    status = UserStatus(user.status.value),
+                    parish=user.parish,
+                    created_at=user.created_at,
+                    updated_at=user.updated_at
                 )
             )
 
@@ -175,6 +177,7 @@ class UserMutation:
                 parish=user.parish,
                 status=user.status,
                 profile_pic=user.profile_pic,
+                created_at=user.created_at,
         )
     )
 
