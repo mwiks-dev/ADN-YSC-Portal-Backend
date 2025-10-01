@@ -5,14 +5,14 @@ from .shared_types import ParishType
 @strawberry.input
 class ParishInput:
     name: str
-    deanery: str
+    deanery_id: int
     outstations: Optional[List[str]] = None
  
 @strawberry.input
 class UpdateParishDetails:
     id: int
     name: str
-    deanery: str
+    deanery_id: int
 
 @strawberry.input
 class ParishSearchInput:
@@ -25,3 +25,8 @@ class ParishSearchInput:
 class ParishListResponse:
     parishes: List[ParishType]
     totalCount: int
+
+@strawberry.type
+class CreateParishResponse:
+    message: str
+    parish: ParishType

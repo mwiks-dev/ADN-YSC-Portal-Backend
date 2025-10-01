@@ -7,12 +7,14 @@ from scripts.seed_super_user import seed_super_user
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import strawberry
 
 load_dotenv()
 
 app = FastAPI()
 
-graphql_app = GraphQLRouter(schema)
+graphql_app = GraphQLRouter(schema, multipart_uploads_enabled=True)
+
 
 app.include_router(graphql_app, prefix="/graphql")
 
@@ -23,10 +25,10 @@ app.mount("/static/profile_pics", StaticFiles(directory="static/profile_pics"), 
 def read_root():
     return {"message": "Hello, World!"}
 
-@app.on_event("startup")
-def on_startup():
-    seed_data()
-    seed_super_user()
+# @app.on_event("startup")
+# def on_startup():
+#     seed_data()
+#     seed_super_user()
 
 #get origins from .env
 raw_origins = os.getenv("CORS_ORIGINS", "")
