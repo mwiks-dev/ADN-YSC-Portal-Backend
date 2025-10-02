@@ -121,7 +121,7 @@ class UserMutation:
         db.commit()
         db.refresh(user)
         
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish)
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish, created_at=user.created_at, updated_at=user.updated_at)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
@@ -132,7 +132,7 @@ class UserMutation:
         token = create_access_token(data={"sub": user.email})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic)
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic, created_at=user.created_at, updated_at=user.updated_at)
         )
     @strawberry.mutation 
     async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
@@ -178,6 +178,7 @@ class UserMutation:
                 status=user.status,
                 profile_pic=user.profile_pic,
                 created_at=user.created_at,
+                updated_at=user.updated_at
         )
     )
 
@@ -212,6 +213,8 @@ class UserMutation:
                 parish=user.parish,
                 status=user.status,
                 profile_pic=user.profile_pic,
+                created_at=user.created_at,
+                updated_at=user.updated_at
             )
         )
     
