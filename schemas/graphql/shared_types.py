@@ -54,3 +54,5 @@ class UserType:
     status: UserStatus
     profile_pic: Optional[str] = None
     parish: ParishType = None
+    created_at: datetime.date
+    updated_at: datetime.date

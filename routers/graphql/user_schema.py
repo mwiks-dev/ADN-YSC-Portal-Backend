@@ -4,7 +4,7 @@ from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput
+from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput, UpdateUserPasswordResponse
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
 from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser, get_current_user
@@ -60,8 +60,10 @@ class UserQuery:
                     baptismref = user.baptismref,
                     profile_pic= user.profile_pic,
                     role=RoleEnum(user.role.value), 
-                    status = UserStatus(user.status.value), # Convert from SQLAlchemy Enum to Strawberry Enum
-                    parish=user.parish
+                    status = UserStatus(user.status.value),
+                    parish=user.parish,
+                    created_at=user.created_at,
+                    updated_at=user.updated_at
                 )
             )
 
@@ -119,7 +121,7 @@ class UserMutation:
         db.commit()
         db.refresh(user)
         
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish)
+        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish, created_at=user.created_at, updated_at=user.updated_at)
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
@@ -130,7 +132,7 @@ class UserMutation:
         token = create_access_token(data={"sub": user.email})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic)
+            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic, created_at=user.created_at, updated_at=user.updated_at)
         )
     @strawberry.mutation 
     async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
@@ -175,16 +177,19 @@ class UserMutation:
                 parish=user.parish,
                 status=user.status,
                 profile_pic=user.profile_pic,
+                created_at=user.created_at,
+                updated_at=user.updated_at
         )
     )
 
     @strawberry.mutation
-    def reset_password(self, info:Info, input: ResetPasswordInput) -> UserType:
+    def reset_password(self, info:Info, input: ResetPasswordInput) -> UpdateUserPasswordResponse:
         user = get_current_user(info)
         if not user or user.email != input.email:
             raise Exception("Unauthorized: Token mismatch or invalid user")
         db = SessionLocal()
         db_user = get_user_by_email(db, input.email)
+        print(input.old_password, db_user.email)
         if not db_user:
             raise Exception("User not found")
         if not pwd_context.verify(input.old_password, db_user.password):
@@ -193,7 +198,25 @@ class UserMutation:
         db_user.password = pwd_context.hash(input.new_password)
         db.commit()
         db.refresh(db_user)
-        return UserType(id=user.id,name=user.name,email=user.email,phonenumber=user.phonenumber,role=user.role)
+        
+        return UpdateUserPasswordResponse(
+            message="Password reset successful",
+            user=UserType(
+                id=user.id,
+                name=user.name,
+                email=user.email,
+                phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth,
+                idnumber=user.idnumber,
+                baptismref=user.baptismref,
+                role=user.role,
+                parish=user.parish,
+                status=user.status,
+                profile_pic=user.profile_pic,
+                created_at=user.created_at,
+                updated_at=user.updated_at
+            )
+        )
     
     @strawberry.mutation
     def update_user_role(self, info:Info, input:UpdateUserRoleInput) -> UserType:

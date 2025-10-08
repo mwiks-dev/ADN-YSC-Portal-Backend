@@ -32,3 +32,5 @@ class User(Base):
     membership_no = Column(String(10), nullable=True)
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")
+    created_at = Column(Date)
+    updated_at = Column(Date)
