@@ -46,8 +46,17 @@ class RegisterInput:
     profile_pic: Optional[str] = strawberry.field(default=None)   
 
 @strawberry.input
-class LoginInput:
+class UpdateInput:
+    name: str
     email: str
+    phonenumber: str
+    baptismref: str
+    profile_pic: Optional[str] = strawberry.field(default=None)   
+
+@strawberry.input
+class LoginInput:
+    email: Optional[str] = None
+    phonenumber: Optional[str] = None
     password: str
 
 @strawberry.input
@@ -56,6 +65,7 @@ class SearchInput:
     page: Optional[int] = 1
     limit: Optional[int] = 10
     parish_id: Optional[int] = strawberry.field(default=None, name="parishId") 
+
 @strawberry.type
 class UserListResponse:
     users: List[UserType]

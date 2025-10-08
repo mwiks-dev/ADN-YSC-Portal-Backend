@@ -3,9 +3,7 @@ import strawberry
 from strawberry.types import Info
 from strawberry.types import Info
 from sqlalchemy import func, select, text
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from typing import List, Optional
 from sqlalchemy.orm import joinedload
 from models.deanery import Deanery
 from models.parish import Parish
