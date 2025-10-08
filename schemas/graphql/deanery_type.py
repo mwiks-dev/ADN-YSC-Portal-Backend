@@ -30,3 +30,4 @@ class DeaneryListResponse:
 class CreateDeaneryResponse:
     message: str
     deanery: DeaneryType
+    
