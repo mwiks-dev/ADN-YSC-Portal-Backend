@@ -55,7 +55,8 @@ class UpdateInput:
 
 @strawberry.input
 class LoginInput:
-    phonenumber: str
+    email: Optional[str] = None
+    phonenumber: Optional[str] = None
     password: str
 
 @strawberry.input
