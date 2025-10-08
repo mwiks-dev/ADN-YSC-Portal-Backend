@@ -47,7 +47,7 @@ class RegisterInput:
 
 @strawberry.input
 class LoginInput:
-    email: str
+    phonenumber: str
     password: str
 
 @strawberry.input
@@ -56,6 +56,7 @@ class SearchInput:
     page: Optional[int] = 1
     limit: Optional[int] = 10
     parish_id: Optional[int] = strawberry.field(default=None, name="parishId") 
+
 @strawberry.type
 class UserListResponse:
     users: List[UserType]

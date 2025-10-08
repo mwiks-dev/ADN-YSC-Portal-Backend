@@ -126,10 +126,10 @@ class UserMutation:
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
         db = SessionLocal()
-        user = authenticate_user(db, input.email, input.password)
+        user = authenticate_user(db, input.phonenumber, input.password)
         if not user:
             return None
-        token = create_access_token(data={"sub": user.email})
+        token = create_access_token(data={"sub": user.phonenumber})
         return LoginPayload(
             token = TokenType(access_token=token, token_type="bearer"),
             user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic, created_at=user.created_at, updated_at=user.updated_at)

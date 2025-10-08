@@ -17,6 +17,9 @@ def get_user_by_id(db: Session, user_id: int):
 def get_user_by_email(db:Session, user_email:str):
     return db.query(User).filter(User.email == user_email).first()
 
+def get_user_by_phonenumber(db:Session, user_phonenumber:str):
+    return db.query(User).filter(User.phonenumber == user_phonenumber).first()
+
 def get_users(db: Session):
     return db.query(User).all()
 
@@ -52,8 +55,8 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
-def authenticate_user(db: Session, email: str, password: str):
-    user = get_user_by_email(db, email)
+def authenticate_user(db: Session, phonumber: str, password: str):
+    user = get_user_by_phonenumber(db, phonumber)
     if not user:
         return None
     if not pwd_context.verify(password, user.password):
