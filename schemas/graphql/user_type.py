@@ -46,6 +46,14 @@ class RegisterInput:
     profile_pic: Optional[str] = strawberry.field(default=None)   
 
 @strawberry.input
+class UpdateInput:
+    name: str
+    email: str
+    phonenumber: str
+    baptismref: str
+    profile_pic: Optional[str] = strawberry.field(default=None)   
+
+@strawberry.input
 class LoginInput:
     phonenumber: str
     password: str

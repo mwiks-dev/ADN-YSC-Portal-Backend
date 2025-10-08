@@ -81,11 +81,55 @@ class UserMutation:
         user = get_current_user(info)
         if not user:
             raise Exception("Unauthorized")
-        if not (is_chaplain(user) or is_superuser(user) or user.id != input.id):
+        if not (is_chaplain(user) or is_superuser(user) or user.id == input.id):
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value, input.parish_id)
+        try:
+        # ✅ Check if email already exists for another user
+            if input.email:
+                existing_email = (
+                db.query(User)
+                .filter(User.email == input.email, User.id != input.id)
+                .first()
+                )
+                if existing_email:
+                    raise Exception("Email is already in use by another user.")
 
+            # ✅ Check if phone number already exists for another user
+            if input.phonenumber:
+                existing_phone = (
+                    db.query(User)
+                    .filter(User.phonenumber == input.phonenumber, User.id != input.id)
+                    .first()
+                )
+                if existing_phone:
+                    raise Exception("Phone number is already in use by another user.")
+
+            # ✅ Perform the update
+            updated_user = update_user(
+                db,
+                input.id,
+                input.name,
+                input.email,
+                input.phonenumber,
+                input.dateofbirth,
+                input.idnumber,
+                input.baptismref,
+                input.password,
+                input.role.value,
+                input.status.value,
+                input.parish_id
+            )
+            db.commit()
+            return updated_user
+
+        except Exception as e:
+            db.rollback()
+            raise Exception(f"Update failed: {str(e)}")
+
+        finally:
+            db.close()
+            
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
