@@ -1,6 +1,6 @@
 from strawberry.types import Info
 from typing import Optional
-from services.user_service import verify_token, get_user_by_email
+from services.user_service import verify_token, get_user_by_identifier
 from config.db import SessionLocal
 from schemas.graphql.shared_types import UserType
 
@@ -40,8 +40,12 @@ def get_current_user(info: Info) -> Optional[UserType]:
     if not auth_header or not auth_header.startswith("Bearer "):
         return None
     token = auth_header.split(" ")[1]
-    email = verify_token(token)
-    if not email:
-        return None
+    username = verify_token(token)
+    if not username:
+        raise Exception("Unauthorized")
+
     db = SessionLocal()
-    return get_user_by_email(db, email)
+    try:
+        return get_user_by_identifier(db, username)
+    finally:
+        db.close()
