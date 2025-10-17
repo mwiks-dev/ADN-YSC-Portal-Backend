@@ -50,7 +50,7 @@ class ParishQuery:
 @strawberry.type    
 class ParishMutation:
     @strawberry.mutation
-    def create_parish(self, info:Info, input:ParishInput, outstations: Optional[List[str]] = None) -> ParishType:
+    def create_parish(self, info:Info, input:ParishInput) -> ParishType:
         db = SessionLocal()
         existing_parish = get_parish_by_name(db, input.name)
         current_user = get_current_user(info)
@@ -65,6 +65,7 @@ class ParishMutation:
             raise Exception("Deanery not found")
         parish = create_parish(db, input.name, input.deanery_id)
 
+        outstations = input.outstations
         # Optional outstations
         if outstations:
             for outstation_name in outstations:
