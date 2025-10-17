@@ -17,6 +17,12 @@ def get_user_by_id(db: Session, user_id: int):
 def get_user_by_email(db:Session, user_email:str):
     return db.query(User).filter(User.email == user_email).first()
 
+def get_user_by_identifier(db:Session, identifier:str):
+    if "@" in identifier:
+        return db.query(User).filter(User.email == identifier).first()
+    # Otherwise, assume it’s a phone number
+    return db.query(User).filter(User.phonenumber == identifier).first()
+
 def get_users(db: Session):
     return db.query(User).all()
 
@@ -52,11 +58,14 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
-def authenticate_user(db: Session, email: str, password: str):
-    user = get_user_by_email(db, email)
-    if not user:
-        return None
-    if not pwd_context.verify(password, user.password):
+def authenticate_user(db: Session, identifier: str, password: str):
+    # Try to find user by email first, else by phone
+    user = (
+        db.query(User)
+        .filter((User.email == identifier) | (User.phonenumber == identifier))
+        .first()
+    )
+    if not user or not pwd_context.verify(password, user.password):
         return None
     return user
 

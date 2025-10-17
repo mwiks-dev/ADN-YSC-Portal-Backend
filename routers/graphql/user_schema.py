@@ -81,11 +81,55 @@ class UserMutation:
         user = get_current_user(info)
         if not user:
             raise Exception("Unauthorized")
-        if not (is_chaplain(user) or is_superuser(user) or user.id != input.id):
+        if not (is_chaplain(user) or is_superuser(user) or user.id == input.id):
             raise Exception("You can only update your own information!")
         db = SessionLocal()
-        return update_user(db, input.id, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value, input.parish_id)
+        try:
+        # ✅ Check if email already exists for another user
+            if input.email:
+                existing_email = (
+                db.query(User)
+                .filter(User.email == input.email, User.id != input.id)
+                .first()
+                )
+                if existing_email:
+                    raise Exception("Email is already in use by another user.")
 
+            # ✅ Check if phone number already exists for another user
+            if input.phonenumber:
+                existing_phone = (
+                    db.query(User)
+                    .filter(User.phonenumber == input.phonenumber, User.id != input.id)
+                    .first()
+                )
+                if existing_phone:
+                    raise Exception("Phone number is already in use by another user.")
+
+            # ✅ Perform the update
+            updated_user = update_user(
+                db,
+                input.id,
+                input.name,
+                input.email,
+                input.phonenumber,
+                input.dateofbirth,
+                input.idnumber,
+                input.baptismref,
+                input.password,
+                input.role.value,
+                input.status.value,
+                input.parish_id
+            )
+            db.commit()
+            return updated_user
+
+        except Exception as e:
+            db.rollback()
+            raise Exception(f"Update failed: {str(e)}")
+
+        finally:
+            db.close()
+            
     @strawberry.mutation
     def delete_user(self, info: Info, id: int) -> Optional[UserType]:
         user = get_current_user(info)
@@ -126,14 +170,38 @@ class UserMutation:
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
         db = SessionLocal()
-        user = authenticate_user(db, input.email, input.password)
-        if not user:
-            return None
-        token = create_access_token(data={"sub": user.email})
-        return LoginPayload(
-            token = TokenType(access_token=token, token_type="bearer"),
-            user = UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref= user.baptismref, role=user.role,status=user.status, parish=user.parish, profile_pic=user.profile_pic, created_at=user.created_at, updated_at=user.updated_at)
-        )
+        try:
+            identifier = input.email or input.phonenumber
+            if not identifier:
+                raise Exception("Please provide either email or phone number.")
+            # Try authenticating with either phone number or email
+            user = authenticate_user(db, identifier, input.password)
+            if not user:
+                raise Exception("Invalid credentials")
+
+            token = create_access_token(data={"sub": user.phonenumber or user.email})
+
+            return LoginPayload(
+                token=TokenType(access_token=token, token_type="bearer"),
+                user=UserType(
+                    id=user.id,
+                    name=user.name,
+                    email=user.email,
+                    phonenumber=user.phonenumber,
+                    dateofbirth=user.dateofbirth,
+                    idnumber=user.idnumber,
+                    baptismref=user.baptismref,
+                    role=user.role,
+                    status=user.status,
+                    parish=user.parish,
+                    profile_pic=user.profile_pic,
+                    created_at=user.created_at,
+                    updated_at=user.updated_at
+                )
+            )
+        finally:
+            db.close()
+
     @strawberry.mutation 
     async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
         db = SessionLocal()
