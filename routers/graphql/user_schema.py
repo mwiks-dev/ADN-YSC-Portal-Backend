@@ -171,7 +171,7 @@ class UserMutation:
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
         db = SessionLocal()
         try:
-            identifier = input.email or input.phonenumber
+            identifier = input.username
             if not identifier:
                 raise Exception("Please provide either email or phone number.")
             # Try authenticating with either phone number or email
