@@ -20,7 +20,7 @@ class User(Base):
     id = Column(Integer, primary_key = True, index=True)
     name = Column(String(100))
     email = Column(String(100), unique=True, index=True)
-    phonenumber = Column(String(20))
+    phonenumber = Column(String(20),unique=True, index=True)
     dateofbirth = Column(Date)
     idnumber = Column(Integer, unique = True)
     baptismref = Column(String(30))
