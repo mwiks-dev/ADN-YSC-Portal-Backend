@@ -49,3 +49,4 @@ def get_current_user(info: Info) -> Optional[UserType]:
         return get_user_by_identifier(db, username)
     finally:
         db.close()
+
