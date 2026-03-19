@@ -8,6 +8,7 @@ from models.deanery import Deanery
 from models.parish import Parish
 from models.outstation import Outstation
 from models.zone import Zone
+from models.event import Event
 
 from dotenv import load_dotenv
 load_dotenv()
