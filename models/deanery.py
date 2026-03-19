@@ -12,6 +12,8 @@ class Deanery(Base):
 
     parishes = relationship("Parish", back_populates="deanery")
 
+    events = relationship("Event", back_populates="deanery")
+
 
 @event.listens_for(Deanery, "before_insert")
 @event.listens_for(Deanery, "before_update")

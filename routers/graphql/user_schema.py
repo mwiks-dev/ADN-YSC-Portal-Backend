@@ -160,8 +160,6 @@ class UserMutation:
                     user.status = UserStatus.archived_member.value
                 else:
                     print(f"User '{user.name}' is {age} years old. Status remains Active.")
-
-            # 5. Commit all changes to the database
         db.commit()
         db.refresh(user)
         
