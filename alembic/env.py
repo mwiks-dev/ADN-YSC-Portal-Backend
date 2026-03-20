@@ -9,6 +9,7 @@ from models.parish import Parish
 from models.outstation import Outstation
 from models.zone import Zone
 from models.event import Event
+from models.event_parish_registration import EventParishRegistration
 
 from dotenv import load_dotenv
 load_dotenv()

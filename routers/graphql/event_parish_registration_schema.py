@@ -9,7 +9,6 @@ from services.event_parish_registration_service import (
     get_event_parish_registrations,
     register_parish_for_event,
     clear_event_parish_registration,
-    mark_event_parish_arrival,
 )
 
 
@@ -19,7 +18,7 @@ class EventParishRegistrationType:
     event_id: int
     parish_id: int
     parish_name: str
-    arrival_time: Optional[datetime]
+    arrival_time: datetime
     number_of_participants: int
     is_cleared: bool
     clearance_note: Optional[str]
@@ -67,77 +66,58 @@ class EventParishRegistrationQuery:
             db.close()
 
 
-@strawberry.mutation
-def register_parish_for_event(
-    self,
-    info: Info,
-    event_id: int,
-    parish_id: int,
-    number_of_participants: int,
-    is_cleared: bool = True,
-    clearance_note: Optional[str] = None,
-) -> EventParishRegistrationType:
-    current_user = get_current_user(info)
-    if not current_user:
-        raise Exception("Unauthorized")
+@strawberry.type
+class EventParishRegistrationMutation:
+    @strawberry.mutation
+    def register_parish_for_event(
+        self,
+        info: Info,
+        event_id: int,
+        parish_id: int,
+        number_of_participants: int,
+        is_cleared: bool = True,
+        clearance_note: Optional[str] = None,
+    ) -> EventParishRegistrationType:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
 
-    db = SessionLocal()
-    try:
-        registration = register_parish_for_event(
-            db=db,
-            current_user=current_user,
-            event_id=event_id,
-            parish_id=parish_id,
-            number_of_participants=number_of_participants,
-            is_cleared=is_cleared,
-            clearance_note=clearance_note,
-        )
-        return map_registration_to_type(registration)
-    finally:
-        db.close()
+        db = SessionLocal()
+        try:
+            registration = register_parish_for_event(
+                db=db,
+                current_user=current_user,
+                event_id=event_id,
+                parish_id=parish_id,
+                number_of_participants=number_of_participants,
+                is_cleared=is_cleared,
+                clearance_note=clearance_note,
+            )
+            return map_registration_to_type(registration)
+        finally:
+            db.close()
 
-@strawberry.mutation
-def clear_event_parish_registration(
-    self,
-    info: Info,
-    registration_id: int,
-    is_cleared: bool = True,
-    clearance_note: Optional[str] = None,
-) -> EventParishRegistrationType:
-    current_user = get_current_user(info)
-    if not current_user:
-        raise Exception("Unauthorized")
+    @strawberry.mutation
+    def clear_event_parish_registration(
+        self,
+        info: Info,
+        registration_id: int,
+        is_cleared: bool = True,
+        clearance_note: Optional[str] = None,
+    ) -> EventParishRegistrationType:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
 
-    db = SessionLocal()
-    try:
-        registration = clear_event_parish_registration(
-            db=db,
-            current_user=current_user,
-            registration_id=registration_id,
-            is_cleared=is_cleared,
-            clearance_note=clearance_note,
-        )
-        return map_registration_to_type(registration)
-    finally:
-        db.close()
-        
-@strawberry.mutation
-def mark_event_parish_arrival(
-    self,
-    info: Info,
-    registration_id: int,
-) -> EventParishRegistrationType:
-    current_user = get_current_user(info)
-    if not current_user:
-        raise Exception("Unauthorized")
-
-    db = SessionLocal()
-    try:
-        registration = mark_event_parish_arrival(
-            db=db,
-            current_user=current_user,
-            registration_id=registration_id,
-        )
-        return map_registration_to_type(registration)
-    finally:
-        db.close()
+        db = SessionLocal()
+        try:
+            registration = clear_event_parish_registration(
+                db=db,
+                current_user=current_user,
+                registration_id=registration_id,
+                is_cleared=is_cleared,
+                clearance_note=clearance_note,
+            )
+            return map_registration_to_type(registration)
+        finally:
+            db.close()

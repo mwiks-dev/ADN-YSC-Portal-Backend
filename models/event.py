@@ -31,3 +31,9 @@ class Event(Base):
     creator = relationship("User", back_populates="events")
     zone = relationship("Zone", back_populates="events")
     deanery = relationship("Deanery", back_populates="events")
+
+    parish_registrations = relationship(
+    "EventParishRegistration",
+    back_populates="event",
+    cascade="all, delete-orphan"
+)
