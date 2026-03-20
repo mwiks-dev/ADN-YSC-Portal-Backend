@@ -8,3 +8,5 @@ class Zone(Base):
     name = Column(String(100), unique = True, index = True)
     
     deaneries = relationship("Deanery", back_populates="zone")
+
+    events = relationship("Event", back_populates="zone")

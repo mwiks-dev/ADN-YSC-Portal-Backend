@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Date
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Date, event
+from sqlalchemy.orm import relationship, Session
 from config.db import Base
+from utils.membership_utils import generate_membership_no
 import enum
 
 class UserRole(str,enum.Enum):
@@ -29,8 +30,20 @@ class User(Base):
     status = Column(Enum(UserStatus))
     profile_pic = Column(String(255), nullable=True)
 
-    membership_no = Column(String(10), nullable=True)
+    events = relationship("Event", back_populates="creator")
+
+    membership_no = Column(String(20), index=True, unique=True, nullable=True)
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")
     created_at = Column(Date)
     updated_at = Column(Date)
+
+@event.listens_for(User, "before_insert")
+def set_membership_no(mapper, connection, target):
+    """Automatically assign a membership number before inserting a user."""
+    db = Session(bind=connection)
+    try:
+        if not target.membership_no and target.parish_id:
+            target.membership_no = generate_membership_no(db, target.parish_id)
+    finally:
+        db.close()
