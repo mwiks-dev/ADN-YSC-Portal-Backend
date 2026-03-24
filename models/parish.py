@@ -22,6 +22,17 @@ class Parish(Base):
 
 @event.listens_for(Parish, "before_insert")
 @event.listens_for(Parish, "before_update")
+
 def set_parish_prefix(mapper, connection, target):
-    if not target.prefix or target.name:
-        target.prefix = generate_parish_prefixes(target.name)
+    """
+    Fix (make it safe + args optional)
+
+      Fixes:
+        - Only generate prefix if it's missing
+        - Avoid breaking when name is None
+    """
+    
+    name = getattr(target, "name", None) 
+
+    if not getattr(target, "prefix", None) and name:
+        target.prefix = generate_parish_prefixes(name)
