@@ -31,6 +31,8 @@ class RoleEnum(enum.Enum):
     parish_member = "parish_member"
     parish_moderator = "parish_moderator"
     deanery_moderator = "deanery_moderator"
+    zone_moderator="zone_moderator"
+    adn_moderator="adn_moderator"
     ysc_coordinator = "ysc_coordinator"
     ysc_chaplain = "ysc_chaplain"
     super_user = "super_user"
