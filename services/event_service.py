@@ -1,9 +1,65 @@
+from dataclasses import dataclass, field
+from datetime import date, time
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.event import Event
 from models.user import User
 from models.parish import Parish
+from models.deanery import Deanery
+from models.zone import Zone
 from models.event_parish_registration import EventParishRegistration
+
+
+# ── Dataclasses returned by get_event_by_id ───────────────────────────────────
+# Strawberry serializes plain dataclasses cleanly; avoids dynamic attribute
+# assignment on SQLAlchemy ORM objects which Strawberry cannot introspect.
+
+@dataclass
+class CreatorData:
+    id: int
+    name: str
+
+@dataclass
+class ZoneData:
+    id: int
+    name: str
+
+@dataclass
+class DeaneryData:
+    id: int
+    name: str
+
+@dataclass
+class RegisteredParishData:
+    id: int
+    name: str
+    registered_at: Optional[date]
+    attendance_status: Optional[str]
+    deanery: Optional[DeaneryData]
+    registered_by: Optional[CreatorData]
+
+@dataclass
+class EventDetailData:
+    id: int
+    title: str
+    description: Optional[str]
+    charges: float
+    days: int
+    event_date: date
+    start_time: time
+    end_time: time
+    scope: str
+    rsvp_deadline: Optional[date]
+    creator: Optional[CreatorData]
+    zone: Optional[ZoneData]
+    deanery: Optional[DeaneryData]
+    registered_parishes_count: int
+    total_parishes_in_scope: Optional[int]
+    attended_parishes_count: int
+    absent_parishes_count: int
+    registered_parishes: List[RegisteredParishData]
+    my_parish_rsvpd: bool
 
 DEANERY_RESTRICTED_ROLES = {"parish_member", "parish_moderator", "deanery_moderator"}
 ZONE_RESTRICTED_ROLES    = {"zone_moderator"}
@@ -21,7 +77,7 @@ def _apply_visibility_filter(query, db, user):
     if role in DEANERY_RESTRICTED_ROLES:
         parish = db.query(Parish).filter(Parish.id == user.parish_id).first()
         if not parish:
-            return query.filter(False)  # no parish attached — return nothing
+            return query.filter(False)
         return query.filter(Event.deanery_id == parish.deanery_id)
 
     if role in ZONE_RESTRICTED_ROLES:
@@ -39,8 +95,85 @@ def _apply_visibility_filter(query, db, user):
     return query  # universal roles — no restriction
 
 
-def get_event_by_id(db: Session, event_id: int):
-    return db.query(Event).filter(Event.id == event_id).first()
+def get_event_by_id(db: Session, event_id: int, current_user=None) -> EventDetailData | None:
+    event = db.query(Event).filter(Event.id == event_id).first()
+
+    if not event:
+        return None
+
+    # ── Creator ────────────────────────────────────────────────────────────────
+    creator_row = db.query(User).filter(User.id == event.created_by).first()
+    creator     = CreatorData(id=creator_row.id, name=creator_row.name) if creator_row else None
+
+    # ── Zone & Deanery ─────────────────────────────────────────────────────────
+    zone_row    = db.query(Zone).filter(Zone.id == event.zone_id).first()         if event.zone_id    else None
+    deanery_row = db.query(Deanery).filter(Deanery.id == event.deanery_id).first() if event.deanery_id else None
+    zone        = ZoneData(id=zone_row.id, name=zone_row.name)         if zone_row    else None
+    deanery     = DeaneryData(id=deanery_row.id, name=deanery_row.name) if deanery_row else None
+
+    # ── Registrations ──────────────────────────────────────────────────────────
+    registrations = (
+        db.query(EventParishRegistration)
+        .filter(EventParishRegistration.event_id == event_id)
+        .all()
+    )
+
+    registered_parishes = []
+    for reg in registrations:
+        parish_row = db.query(Parish).filter(Parish.id == reg.parish_id).first()
+        if not parish_row:
+            continue
+
+        parish_deanery_row = db.query(Deanery).filter(Deanery.id == parish_row.deanery_id).first()
+        reg_by_row         = db.query(User).filter(User.id == reg.registered_by_id).first() if reg.registered_by_id else None
+
+        registered_parishes.append(RegisteredParishData(
+            id                = parish_row.id,
+            name              = parish_row.name,
+            registered_at     = reg.registered_at,
+            attendance_status = reg.attendance_status,
+            deanery           = DeaneryData(id=parish_deanery_row.id, name=parish_deanery_row.name) if parish_deanery_row else None,
+            registered_by     = CreatorData(id=reg_by_row.id, name=reg_by_row.name) if reg_by_row else None,
+        ))
+
+    # ── Counts ─────────────────────────────────────────────────────────────────
+    attended = sum(1 for r in registrations if r.attendance_status == "attended")
+    absent   = sum(1 for r in registrations if r.attendance_status == "absent")
+
+    # ── Total parishes in scope ────────────────────────────────────────────────
+    scope_str   = event.scope.value if hasattr(event.scope, "value") else event.scope
+    scope_query = db.query(func.count(Parish.id))
+    if scope_str == "deanery" and event.deanery_id:
+        scope_query = scope_query.filter(Parish.deanery_id == event.deanery_id)
+    elif scope_str == "zone" and event.zone_id:
+        scope_query = scope_query.filter(Parish.zone_id == event.zone_id)
+    total_in_scope = scope_query.scalar()
+
+    # ── RSVP flag ──────────────────────────────────────────────────────────────
+    current_parish_id = getattr(current_user, "parish_id", None)
+    my_parish_rsvpd   = any(r.parish_id == current_parish_id for r in registrations) if current_parish_id else False
+
+    return EventDetailData(
+        id                       = event.id,
+        title                    = event.title,
+        description              = event.description,
+        charges                  = float(event.charges),
+        days                     = event.days,
+        event_date               = event.event_date,
+        start_time               = event.start_time,
+        end_time                 = event.end_time,
+        scope                    = scope_str,
+        rsvp_deadline            = getattr(event, "rsvp_deadline", None),
+        creator                  = creator,
+        zone                     = zone,
+        deanery                  = deanery,
+        registered_parishes_count = len(registered_parishes),
+        total_parishes_in_scope  = total_in_scope,
+        attended_parishes_count  = attended,
+        absent_parishes_count    = absent,
+        registered_parishes      = registered_parishes,
+        my_parish_rsvpd          = my_parish_rsvpd,
+    )
 
 
 def get_events(db: Session, user, page=1, limit=10, search=None, scope=None,
