@@ -3,6 +3,7 @@ import strawberry
 from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
+from sqlalchemy.orm import joinedload
 from config.db import SessionLocal
 from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput, UpdateUserPasswordResponse
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
@@ -13,6 +14,10 @@ from models.user import User, UserRole
 import imghdr
 import os
 from datetime import date
+
+from models.parish import Parish
+from models.deanery import Deanery
+from models.user import User
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -172,13 +177,28 @@ class UserMutation:
             identifier = input.username
             if not identifier:
                 raise Exception("Please provide either email or phone number.")
-            # Try authenticating with either phone number or email
+            
+            # Authenticate the user
             user = authenticate_user(db, identifier, input.password)
             if not user:
                 raise Exception("Invalid credentials")
-
+            
+            # Reload user with nested relationships eagerly loaded
+            user = (
+                db.query(User)
+                .options(
+                    joinedload(User.parish)
+                    .joinedload(Parish.deanery)
+                    .joinedload(Deanery.zone)
+                )
+                .filter(User.id == user.id)
+                .first()
+            )
+            
+            # Generate token
             token = create_access_token(data={"sub": user.phonenumber or user.email})
-
+            
+            # Return payload
             return LoginPayload(
                 token=TokenType(access_token=token, token_type="bearer"),
                 user=UserType(

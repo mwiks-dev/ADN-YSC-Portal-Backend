@@ -24,19 +24,15 @@ class ZoneQuery:
         return None
     
     @strawberry.field
-    def zones(self, info:Info, input:ZoneSearchInput) -> ZoneListResponse:
+    def zones(self, info: Info, input: ZoneSearchInput) -> ZoneListResponse:
         db = SessionLocal()
         query = db.query(Zone)
-        
-        if input.search.strip():
-            search = f"%{input.search.strip()}%"
-            query = query.filter(Deanery.name.ilike(search))
 
-        total_count = query.count()
-        offset = (input.page - 1) * input.limit
-        deaneries = query.offset(offset).limit(input.limit).all()
-        return ZoneListResponse(deaneries=deaneries, totalCount=total_count)
-    
+        if input.search.strip():
+            query = query.filter(Zone.name.ilike(f"%{input.search.strip()}%"))
+
+        zones = query.all()
+        return ZoneListResponse(zones=zones, total_count=len(zones))
     @strawberry.field
     def zoneDeaneries(self, zone:str) -> List[ZoneType]:
         db = SessionLocal()

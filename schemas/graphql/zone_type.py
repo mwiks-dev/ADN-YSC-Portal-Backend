@@ -27,3 +27,5 @@ class ZoneListResponse:
 class CreateZoneResponse:
     message: str
     parish: ZoneType
+    
+
