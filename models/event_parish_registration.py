@@ -32,3 +32,13 @@ class EventParishRegistration(Base):
 
     registrar = relationship("User", foreign_keys=[registered_by])
     clearer = relationship("User", foreign_keys=[cleared_by])
+    
+    @property
+    def attendance_status(self) -> str:
+        if not self.arrival_time:
+            return "registered"
+        
+        if self.event and self.arrival_time.time() <= self.event.end_time:
+            return "attended"
+        
+        return "absent"
