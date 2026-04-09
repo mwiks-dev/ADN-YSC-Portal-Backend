@@ -1,7 +1,7 @@
 import strawberry
 from strawberry.types import Info
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone, time
 
 from config.db import SessionLocal
 from utils.auth_utils import get_current_user
@@ -10,6 +10,10 @@ from services.event_parish_registration_service import (
     register_parish_for_event,
     clear_event_parish_registration,
 )
+
+from models.event import Event
+from schemas.graphql.event_type import RegisterEventInput
+
 
 
 @strawberry.type
@@ -20,6 +24,7 @@ class EventParishRegistrationType:
     parish_name: str
     arrival_time: datetime
     number_of_participants: int
+    attendance_status: Optional[str]
     is_cleared: bool
     clearance_note: Optional[str]
     registered_by: int
@@ -72,11 +77,7 @@ class EventParishRegistrationMutation:
     def register_parish_for_event(
         self,
         info: Info,
-        event_id: int,
-        parish_id: int,
-        number_of_participants: int,
-        is_cleared: bool = True,
-        clearance_note: Optional[str] = None,
+        input: RegisterEventInput,
     ) -> EventParishRegistrationType:
         current_user = get_current_user(info)
         if not current_user:
@@ -84,14 +85,41 @@ class EventParishRegistrationMutation:
 
         db = SessionLocal()
         try:
+            event = db.query(Event).filter(Event.id == input.event_id).first()
+            if not event:
+                raise Exception(f"Event with id {input.event_id} not found")
+
+            event_date = event.event_date
+            event_start = event.start_time
+
+            if event_date and event_start:
+                registration_deadline = datetime.combine(
+                    event_date,
+                    event_start,
+                    tzinfo=timezone.utc
+                )
+            else:
+                registration_deadline = None
+
+            now = datetime.now(timezone.utc)
+
+            is_registration_late = (
+                registration_deadline is not None and now > registration_deadline
+            )
+
+            if is_registration_late:
+                resolved_is_cleared = False
+            else:
+                resolved_is_cleared = input.is_cleared if input.is_cleared is not None else True
+
             registration = register_parish_for_event(
                 db=db,
                 current_user=current_user,
-                event_id=event_id,
-                parish_id=parish_id,
-                number_of_participants=number_of_participants,
-                is_cleared=is_cleared,
-                clearance_note=clearance_note,
+                event_id=input.event_id,
+                parish_id=input.parish_id,
+                number_of_participants=input.number_of_participants,
+                is_cleared=resolved_is_cleared,
+                clearance_note=input.clearance_note,
             )
             return map_registration_to_type(registration)
         finally:

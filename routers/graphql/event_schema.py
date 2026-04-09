@@ -49,7 +49,7 @@ class PaginatedEvents:
 class RegisteredParishType:
     id: int
     name: str
-    registered_at: Optional[date]
+    created_at: Optional[date]
     attendance_status: Optional[str]       # "registered" | "attended" | "absent"
     deanery: Optional[DeaneryType]
     registered_by: Optional[EventCreatorType]

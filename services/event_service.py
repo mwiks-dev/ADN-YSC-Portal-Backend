@@ -34,7 +34,7 @@ class DeaneryData:
 class RegisteredParishData:
     id: int
     name: str
-    registered_at: Optional[date]
+    created_at: Optional[date]
     attendance_status: Optional[str]
     deanery: Optional[DeaneryData]
     registered_by: Optional[CreatorData]
@@ -125,20 +125,20 @@ def get_event_by_id(db: Session, event_id: int, current_user=None) -> EventDetai
             continue
 
         parish_deanery_row = db.query(Deanery).filter(Deanery.id == parish_row.deanery_id).first()
-        reg_by_row         = db.query(User).filter(User.id == reg.registered_by_id).first() if reg.registered_by_id else None
+        reg_by_row         = db.query(User).filter(User.id == reg.registered_by).first() if reg.registered_by else None
 
         registered_parishes.append(RegisteredParishData(
             id                = parish_row.id,
             name              = parish_row.name,
-            registered_at     = reg.registered_at,
+            created_at        = reg.created_at,
             attendance_status = reg.attendance_status,
             deanery           = DeaneryData(id=parish_deanery_row.id, name=parish_deanery_row.name) if parish_deanery_row else None,
             registered_by     = CreatorData(id=reg_by_row.id, name=reg_by_row.name) if reg_by_row else None,
         ))
 
     # ── Counts ─────────────────────────────────────────────────────────────────
-    attended = sum(1 for r in registrations if r.attendance_status == "attended")
-    absent   = sum(1 for r in registrations if r.attendance_status == "absent")
+    attended = sum(1 for p in registered_parishes if p.attendance_status == "attended")
+    absent   = sum(1 for p in registered_parishes if p.attendance_status == "absent")
 
     # ── Total parishes in scope ────────────────────────────────────────────────
     scope_str   = event.scope.value if hasattr(event.scope, "value") else event.scope
