@@ -1,4 +1,4 @@
-name: Deploy to cPanel (FTP)
+name: Deploy to cPanel (FTP - Active Mode)
 
 on:
   push:
@@ -12,24 +12,27 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Sync via Plain FTP
+      - name: 🚀 Sync via Active FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASS }}
           port: 21
-          passive: false
-          # We use 'ftp' and 'secure: false' because 'ftps' usually 
-          # causes the timeout/mode error on strict firewalls.
+          passive: false 
           protocol: ftp 
           secure: false
           local-dir: ./
           server-dir: ./ 
+          
           exclude: |
             **/node_modules/**
             **/vendor/**
             **/.git*
             **/.github/**
             **/__pycache__/**
+            **/venv/**
             **/.env
+            **/.env.*
+            **/tests/**
+            **/storage/*.sqlite
