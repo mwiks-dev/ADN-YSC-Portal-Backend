@@ -1,4 +1,4 @@
-name: Deploy to cPanel (SFTP)
+name: Deploy to cPanel (FTP)
 
 on:
   push:
@@ -9,15 +9,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
 
-      - name: SFTP Deploy
-        uses: easingthemes/ssh-deploy@v5.1.0
+      - name: 🚀 Sync via Plain FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_HOST: ${{ secrets.SERVER_IP }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          REMOTE_PORT: 1980
-          
-          TARGET: /home/${{ secrets.USERNAME }}/python/main
-          EXCLUDE: "/node_modules/, /vendor/, .git/, .github/"
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASS }}
+          port: 21
+          # We use 'ftp' and 'secure: false' because 'ftps' usually 
+          # causes the timeout/mode error on strict firewalls.
+          protocol: ftp 
+          secure: false
+          local-dir: ./
+          server-dir: ./ 
+          exclude: |
+            **/node_modules/**
+            **/vendor/**
+            **/.git*
+            **/.github/**
+            **/__pycache__/**
+            **/.env
