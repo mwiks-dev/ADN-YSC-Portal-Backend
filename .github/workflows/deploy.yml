@@ -22,7 +22,7 @@ jobs:
           port: 21
           protocol: ftp
           local-dir: ./
-          server-dir: ${{ secrets.FTP_DIR }}
+          server-dir: ${{ secrets.FTP_DIR }}/
           state-name: .ftp-deploy-sync-state.json
           dangerous-clean-slate: false
           exclude: |
