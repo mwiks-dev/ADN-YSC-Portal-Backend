@@ -1,4 +1,4 @@
-name: Deploy to cPanel
+name: Deploy to cPanel (SFTP)
 
 on:
   push:
@@ -8,34 +8,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: FTP Deploy to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+      - name: SFTP Deploy
+        uses: easingthemes/ssh-deploy@v5.1.0
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASS }}
-          port: 21
-          protocol: ftp
-          local-dir: ./
-          server-dir: ${{ secrets.FTP_DIR }}/
-          state-name: .ftp-deploy-sync-state.json
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/vendor/**
-            **/.env
-            **/.env.*
-            **/storage/**
-            **/tests/**
-            **/README.md
-            **/.github/**
-            **/.vscode/**
-            **/*.log
-          log-level: standard
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.SERVER_IP }}
+          REMOTE_USER: ${{ secrets.USERNAME }}
+          TARGET: /home/${{ secrets.USERNAME }}/python/main
+          EXCLUDE: "/node_modules/, /vendor/, .git/, .github/"
