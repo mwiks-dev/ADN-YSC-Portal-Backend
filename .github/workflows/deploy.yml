@@ -1,4 +1,4 @@
-name: Deploy to cPanel (FTP - Active Mode)
+name: Deploy to cPanel via SCP
 
 on:
   push:
@@ -8,31 +8,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Sync via Active FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: 🚀 Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASS }}
-          port: 21
-          passive: false 
-          protocol: ftp 
-          secure: false
-          local-dir: ./
-          server-dir: ./ 
-          
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 1980
+          source: "."
+          target: "/home1/adnyouth/python/main"
+          strip_components: 0
+         
           exclude: |
-            **/node_modules/**
-            **/vendor/**
-            **/.git*
-            **/.github/**
-            **/__pycache__/**
-            **/venv/**
-            **/.env
-            **/.env.*
-            **/tests/**
-            **/storage/*.sqlite
+            .git/
+            .github/
+            node_modules/
+            vendor/
+            venv/
+            __pycache__/
+            .env
+            tests/
+            README.md
