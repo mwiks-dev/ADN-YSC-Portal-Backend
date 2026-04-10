@@ -19,6 +19,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASS }}
           port: 21
+          passive: false
           # We use 'ftp' and 'secure: false' because 'ftps' usually 
           # causes the timeout/mode error on strict firewalls.
           protocol: ftp 
