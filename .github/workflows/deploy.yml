@@ -10,17 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: FTP Deploy to cPanel
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASS }}
-        local-dir: './'
-        server-dir: /${{ secrets.FTP_DIR }}/
-
-    - name: Trigger Python app restart
-      run: echo "Touching passenger_wsgi.py to restart app"
+      - name: FTP Deploy to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASS }}
+          port: 21
+          protocol: ftp
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_DIR }}
+          state-name: .ftp-deploy-sync-state.json
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/vendor/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/tests/**
+            **/README.md
+            **/.github/**
+            **/.vscode/**
+            **/*.log
+          log-level: standard
