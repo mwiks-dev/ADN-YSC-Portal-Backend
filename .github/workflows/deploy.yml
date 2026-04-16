@@ -17,6 +17,7 @@ jobs:
           server: adn-youth.org
           username: api_ftp@adn-youth.org
           password: ${{ secrets.FTP_PASS }}
+          protocol: ftps 
           local-dir: ./
           server-dir: /home1/adnyouth/python/main/
           exclude: |
