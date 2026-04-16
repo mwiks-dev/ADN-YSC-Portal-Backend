@@ -1,5 +1,4 @@
-name: Deploy to cPanel via SCP
-
+name: Deploy to cPanel via FTP
 on:
   push:
     branches:
@@ -8,30 +7,25 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Copy files via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - name: 🚀 Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: 1980
-          source: "."
-          target: "/home1/adnyouth/python/main"
-          strip_components: 0
-         
+          server: adn-youth.org
+          username: api_ftp@adn-youth.org
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./
+          server-dir: /home1/adnyouth/python/main/
           exclude: |
-            .git/
-            .github/
-            node_modules/
-            vendor/
-            venv/
-            __pycache__/
-            .env
-            tests/
-            README.md
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/vendor/**
+            **/venv/**
+            **/__pycache__/**
+            **/.env
+            **/tests/**
+            **/README.md
