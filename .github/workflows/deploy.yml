@@ -1,4 +1,4 @@
-name: Deploy to cPanel via FTP
+name: Deploy to cPanel
 on:
   push:
     branches:
@@ -7,26 +7,26 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 📂 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: FTP Deploy to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
         with:
-          server: adn-youth.org
-          username: api_ftp@adn-youth.org
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASS }}
-          protocol: ftps 
-          local-dir: ./
-          server-dir: /home1/adnyouth/python/main/
+          local-dir: './'
+          server-dir: ${{ secrets.FTP_DIR }}
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/vendor/**
             **/venv/**
             **/__pycache__/**
             **/.env
-            **/tests/**
-            **/README.md
+
+      - name: Trigger Python app restart
+        run: echo "Touching passenger_wsgi.py to restart app"
