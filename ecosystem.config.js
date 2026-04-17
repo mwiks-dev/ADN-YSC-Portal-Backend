@@ -3,7 +3,7 @@ module.exports = {
         {
             name: "fastapi-app",
             script: "/home/adnyouth/virtualenv/python/main/3.12/bin/uvicorn",
-            args: "main:app --host 127.0.0.1 --port 8000",
+            args: "main:app --host 127.0.0.1 --port 5000",
             interpreter: "none",
             cwd: "/home1/adnyouth/python/main",
             watch: false,
