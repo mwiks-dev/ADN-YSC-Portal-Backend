@@ -5,28 +5,11 @@ on:
       - master
 
 jobs:
-  deploy:
+  notify:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: FTP Deploy to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: './'
-          server-dir: ${{ secrets.FTP_DIR }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/venv/**
-            **/__pycache__/**
-            **/.env
-
-      - name: Trigger Python app restart
-        run: echo "Touching passenger_wsgi.py to restart app"
+      
+      - name: Deployment note
+        run: echo "Code pushed - cPanel Git will auto-pull"
