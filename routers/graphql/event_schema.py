@@ -53,6 +53,7 @@ class RegisteredParishType:
     attendance_status: Optional[str]       # "registered" | "attended" | "absent"
     deanery: Optional[DeaneryType]
     registered_by: Optional[EventCreatorType]
+    number_of_participants: Optional[int]
 
 
 @strawberry.type
@@ -154,7 +155,7 @@ class EventQuery:
                 date_from=filters.date_from   if filters else None,
                 date_to=filters.date_to       if filters else None,
                 zone_id=filters.zone_id       if filters else None,
-                deanery_id=filters.deanery_id if filters else None,
+                deanery_id=filters.deanery_id if filters else None
             )
             return PaginatedEvents(
                 events=result["events"],

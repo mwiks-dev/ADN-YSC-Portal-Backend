@@ -21,7 +21,7 @@ class ZoneSearchInput:
 @strawberry.type
 class ZoneListResponse:
     zones: List[ZoneType]
-    totalCount: int
+    total_count: int
 
 @strawberry.type
 class CreateZoneResponse:

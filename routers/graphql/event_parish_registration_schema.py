@@ -31,7 +31,6 @@ class EventParishRegistrationType:
     cleared_by: Optional[int]
     created_at: datetime
 
-
 def map_registration_to_type(registration) -> EventParishRegistrationType:
     return EventParishRegistrationType(
         id=registration.id,
@@ -40,13 +39,13 @@ def map_registration_to_type(registration) -> EventParishRegistrationType:
         parish_name=registration.parish.name if registration.parish else "",
         arrival_time=registration.arrival_time,
         number_of_participants=registration.number_of_participants,
+        attendance_status=registration.attendance_status,
         is_cleared=registration.is_cleared,
         clearance_note=registration.clearance_note,
         registered_by=registration.registered_by,
         cleared_by=registration.cleared_by,
         created_at=registration.created_at,
     )
-
 
 @strawberry.type
 class EventParishRegistrationQuery:
@@ -121,7 +120,11 @@ class EventParishRegistrationMutation:
                 is_cleared=resolved_is_cleared,
                 clearance_note=input.clearance_note,
             )
+            db.commit()
             return map_registration_to_type(registration)
+        except Exception as e:
+            db.rollback()
+            raise e
         finally:
             db.close()
 
