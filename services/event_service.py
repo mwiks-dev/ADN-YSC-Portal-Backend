@@ -38,6 +38,7 @@ class RegisteredParishData:
     attendance_status: Optional[str]
     deanery: Optional[DeaneryData]
     registered_by: Optional[CreatorData]
+    number_of_participants: Optional[int]
 
 @dataclass
 class EventDetailData:
@@ -78,7 +79,14 @@ def _apply_visibility_filter(query, db, user):
         parish = db.query(Parish).filter(Parish.id == user.parish_id).first()
         if not parish:
             return query.filter(False)
-        return query.filter(Event.deanery_id == parish.deanery_id)
+        deanery = db.query(Deanery).filter(Deanery.id == parish.deanery_id).first()
+        if not deanery:
+            return query.filter(False)
+        return query.filter(
+            (Event.scope == "adn")                    |  # all ADN-wide events
+            (Event.zone_id == deanery.zone_id)        |  # all zonal events in their zone
+            (Event.deanery_id == parish.deanery_id)      # all deanery events in their deanery
+        )
 
     if role in ZONE_RESTRICTED_ROLES:
         deanery_ids = [
@@ -88,8 +96,9 @@ def _apply_visibility_filter(query, db, user):
             if d[0] is not None
         ]
         return query.filter(
-            (Event.zone_id == user.zone_id) |
-            (Event.deanery_id.in_(deanery_ids))
+            (Event.scope == "adn")                |  # all ADN-wide events
+            (Event.zone_id == user.zone_id)       |  # all zonal events in their zone
+            (Event.deanery_id.in_(deanery_ids))      # all deanery events in their zone
         )
 
     return query  # universal roles — no restriction
@@ -134,6 +143,7 @@ def get_event_by_id(db: Session, event_id: int, current_user=None) -> EventDetai
             attendance_status = reg.attendance_status,
             deanery           = DeaneryData(id=parish_deanery_row.id, name=parish_deanery_row.name) if parish_deanery_row else None,
             registered_by     = CreatorData(id=reg_by_row.id, name=reg_by_row.name) if reg_by_row else None,
+            number_of_participants = reg.number_of_participants
         ))
 
     # ── Counts ─────────────────────────────────────────────────────────────────
@@ -143,10 +153,19 @@ def get_event_by_id(db: Session, event_id: int, current_user=None) -> EventDetai
     # ── Total parishes in scope ────────────────────────────────────────────────
     scope_str   = event.scope.value if hasattr(event.scope, "value") else event.scope
     scope_query = db.query(func.count(Parish.id))
+
     if scope_str == "deanery" and event.deanery_id:
         scope_query = scope_query.filter(Parish.deanery_id == event.deanery_id)
+
     elif scope_str == "zone" and event.zone_id:
-        scope_query = scope_query.filter(Parish.zone_id == event.zone_id)
+        deanery_ids = [
+            d[0] for d in db.query(Deanery.id)
+            .filter(Deanery.zone_id == event.zone_id)
+            .all()
+            if d[0] is not None
+        ]
+        scope_query = scope_query.filter(Parish.deanery_id.in_(deanery_ids))
+
     total_in_scope = scope_query.scalar()
 
     # ── RSVP flag ──────────────────────────────────────────────────────────────
@@ -194,7 +213,7 @@ def get_events(db: Session, user, page=1, limit=10, search=None, scope=None,
 
     total_count = query.count()
     events = (
-        query.order_by(Event.event_date.asc())
+        query.order_by(Event.id.desc())
         .offset((page - 1) * limit)
         .limit(limit)
         .all()
