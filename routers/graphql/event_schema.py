@@ -35,15 +35,6 @@ class EventType:
     creator: Optional[EventCreatorType]
     registered_parishes_count: int
 
-
-@strawberry.type
-class PaginatedEvents:
-    events: List[EventType]
-    total_count: int
-    page: int
-    total_pages: int
-
-
 # ── Detail nested types ────────────────────────────────────────────────────────
 @strawberry.type
 class RegisteredParishType:
@@ -128,9 +119,14 @@ def check_event_scope(user, input):
         return True
     raise PermissionError(f"Unrecognized role '{role}'.")
 
-
+@strawberry.type
+class PaginatedEvents:
+    events: List[EventDetailsType]
+    total_count: int
+    page: int
+    total_pages: int
+    
 # ── Queries ────────────────────────────────────────────────────────────────────
-
 @strawberry.type
 class EventQuery:
 
@@ -174,6 +170,7 @@ class EventQuery:
             return get_event_by_id(db, event_id=id, current_user=user)
         finally:
             db.close()
+
 
 
 # ── Mutation ───────────────────────────────────────────────────────────────────
