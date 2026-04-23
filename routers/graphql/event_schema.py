@@ -39,12 +39,18 @@ class EventType:
 @strawberry.type
 class RegisteredParishType:
     id: int
+    parish_id: int
+    arrival_time: Optional[date]
     name: str
     created_at: Optional[date]
-    attendance_status: Optional[str]       # "registered" | "attended" | "absent"
+    attendance_status: Optional[str]       
     deanery: Optional[DeaneryType]
     registered_by: Optional[EventCreatorType]
     number_of_participants: Optional[int]
+    fine_amount: Optional[float] = None
+    clearance_note: Optional[str] = None
+    clearer: Optional[EventCreatorType] = None
+
 
 
 @strawberry.type

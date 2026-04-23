@@ -33,13 +33,19 @@ class DeaneryData:
 @dataclass
 class RegisteredParishData:
     id: int
+    parish_id: int
     name: str
+    arrival_time: Optional[date]
     created_at: Optional[date]
     attendance_status: Optional[str]
     deanery: Optional[DeaneryData]
     registered_by: Optional[CreatorData]
     number_of_participants: Optional[int]
-
+    
+    fine_amount: Optional[float] = None
+    clearance_note: Optional[str] = None
+    clearer: Optional[CreatorData] = None
+    
 
 @dataclass
 class EventDetailData:
@@ -94,8 +100,10 @@ def _build_event_detail(db: Session, event: Event, current_user=None) -> EventDe
         reg_by = db.query(User).filter(User.id == reg.registered_by).first() if reg.registered_by else None
 
         registered_parishes.append(RegisteredParishData(
-            id=parish.id,
+            id=reg.id,
+            parish_id=parish.id,
             name=parish.name,
+            arrival_time=reg.arrival_time,
             created_at=reg.created_at,
             attendance_status=reg.attendance_status,
             deanery=DeaneryData(parish_deanery.id, parish_deanery.name) if parish_deanery else None,

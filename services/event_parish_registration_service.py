@@ -1,4 +1,3 @@
-from curses import echo
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 
@@ -10,12 +9,14 @@ from models.event import Event
 from schemas.graphql.event_parish_type import AdmitParishInput
 from utils.auth_utils import can_register_users
 
+
 def get_event_parish_registration_by_id(db: Session, registration_id: int):
     return (
         db.query(EventParishRegistration)
         .filter(EventParishRegistration.id == registration_id)
         .first()
     )
+
 
 def get_event_parish_registrations(db: Session, event_id: int = None, parish_id: int = None):
     query = db.query(EventParishRegistration).order_by(EventParishRegistration.id.desc())
@@ -62,9 +63,6 @@ def register_parish_for_event(
     if db_user.parish is None:
         raise Exception("Current user is not attached to a parish.")
 
-    # if db_user.parish.deanery_id != parish.deanery_id:
-    #     raise Exception("You can only register parishes within your deanery.")
-
     existing = (
         db.query(EventParishRegistration)
         .filter(
@@ -80,9 +78,8 @@ def register_parish_for_event(
     registration = EventParishRegistration(
         event_id=event_id,
         parish_id=parish_id,
-        arrival_time=datetime.utcnow(),
+        arrival_time=None,          # ✅ not yet admitted — set only on admission
         number_of_participants=number_of_participants,
-        
         is_cleared=True,
         clearance_note=None,
         registered_by=db_user.id,
@@ -117,6 +114,7 @@ def clear_event_parish_registration(
     db.refresh(registration)
     return registration
 
+
 def admit_parish_to_event(
     db: Session,
     current_user: User,
@@ -139,8 +137,11 @@ def admit_parish_to_event(
     if not parish:
         raise Exception("Parish not found.")
 
-    allowed, reason = can_admit_parish_to_event(db, current_user, event, parish)
+    # ✅ Already admitted check — after parish is loaded so we can use parish.name
+    if registration.arrival_time is not None:
+        raise Exception(f"{parish.name} has already been admitted to this event.")
 
+    allowed, reason = can_admit_parish_to_event(db, current_user, event, parish)
     if not allowed:
         print(
             f"User {current_user.id} denied admitting parish {parish.id} "
@@ -148,14 +149,50 @@ def admit_parish_to_event(
         )
         raise Exception(reason)
 
-    registration.is_cleared = False if input.fine_amount > 0 else True
-    registration.clearance_note = input.clearance_note
-    registration.cleared_by = current_user.id
-    registration.fine_amount = input.fine_amount
-    registration.number_of_participants = input.number_of_participants
-    db.refresh(registration)
+    try:
+        # ── Time check ────────────────────────────────────────────────────
+        now = datetime.now()
+        is_late = event.start_time and now.time() > event.start_time
 
-    return registration
+        if not is_late:
+            # On time — auto-clear, no fine
+            registration.is_cleared = True
+            registration.fine_amount = 0
+            registration.clearance_note = None
+            registration.cleared_by = None
+
+        else:
+            # Late — fine or waiver required
+            if input.fine_amount and input.fine_amount > 0:
+                registration.is_cleared = False
+                registration.fine_amount = input.fine_amount
+                registration.clearance_note = None
+                registration.cleared_by = None
+
+            elif input.clearance_note and input.clearance_note.strip():
+                registration.is_cleared = True
+                registration.fine_amount = 0
+                registration.clearance_note = input.clearance_note.strip()
+                registration.cleared_by = current_user.id
+
+            else:
+                raise Exception(
+                    "Parish is arriving late. Either provide a fine amount or a "
+                    "clearance note explaining why no fine was applied."
+                )
+
+        registration.number_of_participants = input.number_of_participants
+        registration.arrival_time = now       # ✅ stamp admission time
+        registration.admitted_by = current_user.id
+
+        db.commit()
+        db.refresh(registration)
+        return registration
+
+    except Exception as e:
+        db.rollback()
+        raise e
+
 
 def can_admit_parish_to_event(
     db: Session,
@@ -186,5 +223,4 @@ def can_admit_parish_to_event(
             return False, "Only deanery moderators can admit parishes to deanery events."
         return True, "Allowed: deanery moderator."
 
-    return False, f"Unsupported or restricted event scope: {event_scope}."    
-    
+    return False, f"Unsupported or restricted event scope: {event_scope}."
