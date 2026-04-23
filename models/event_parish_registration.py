@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean, UniqueConstraint, Text
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean, UniqueConstraint, Text, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -13,13 +13,15 @@ class EventParishRegistration(Base):
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
     parish_id = Column(Integer, ForeignKey("parishes.id"), nullable=False)
 
-    arrival_time = Column(DateTime, nullable=False, server_default=func.now())
+    arrival_time = Column(DateTime, nullable=True)               
     number_of_participants = Column(Integer, nullable=False, default=0)
     is_cleared = Column(Boolean, nullable=False, default=True)
     clearance_note = Column(Text, nullable=True)
+    fine_amount = Column(Float, nullable=False, default=0.0)
 
     registered_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     cleared_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    admitted_by = Column(Integer, ForeignKey("users.id"), nullable=True)           
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -32,13 +34,20 @@ class EventParishRegistration(Base):
 
     registrar = relationship("User", foreign_keys=[registered_by])
     clearer = relationship("User", foreign_keys=[cleared_by])
-    
+    admitter = relationship("User", foreign_keys=[admitted_by])
+
     @property
     def attendance_status(self) -> str:
-        if not self.arrival_time:
+        # Not yet admitted at all
+        if self.arrival_time is None:
             return "registered"
-        
-        if self.event and self.arrival_time.time() <= self.event.end_time:
+
+        # Admitted but pending clearance (late + fine outstanding)
+        if self.arrival_time and not self.is_cleared:
+            return "pending_clearance"
+
+        # Admitted and cleared (on time or fine waived)
+        if self.arrival_time and self.is_cleared:
             return "attended"
-        
+
         return "absent"
