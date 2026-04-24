@@ -17,17 +17,49 @@ def get_event_parish_registration_by_id(db: Session, registration_id: int):
         .first()
     )
 
+def get_event_parish_registrations(
+    db: Session,
+    event_id: int = None,
+    parish_id: int = None,
+    page: int = 1,
+    limit: int = 10,
+    search: str = None,
+):
+    query = (
+        db.query(EventParishRegistration)
+        .options(
+            joinedload(EventParishRegistration.event),
+            joinedload(EventParishRegistration.parish),
+            joinedload(EventParishRegistration.registrar),
+            joinedload(EventParishRegistration.clearer),
+            joinedload(EventParishRegistration.admitter),
+        )
+    )
 
-def get_event_parish_registrations(db: Session, event_id: int = None, parish_id: int = None):
-    query = db.query(EventParishRegistration).order_by(EventParishRegistration.id.desc())
-
+    # filters
     if event_id is not None:
         query = query.filter(EventParishRegistration.event_id == event_id)
 
     if parish_id is not None:
         query = query.filter(EventParishRegistration.parish_id == parish_id)
 
-    return query.all()
+    if search:
+        query = query.join(EventParishRegistration.parish).filter(
+            Parish.name.ilike(f"%{search}%")
+        )
+
+    # total BEFORE pagination
+    total = query.count()
+
+    # pagination
+    registrations = (
+        query.order_by(EventParishRegistration.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    return registrations, total
 
 
 def register_parish_for_event(

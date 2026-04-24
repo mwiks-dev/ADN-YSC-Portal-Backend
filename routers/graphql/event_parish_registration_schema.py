@@ -1,7 +1,10 @@
+from __future__ import annotations
 import strawberry
 from strawberry.types import Info
 from typing import Optional, List
 from datetime import datetime, timezone, time
+from sqlalchemy.orm import joinedload
+
 
 from config.db import SessionLocal
 from utils.auth_utils import get_current_user
@@ -14,7 +17,9 @@ from services.event_parish_registration_service import (
 
 from models.event import Event
 from schemas.graphql.event_type import RegisterEventInput
-from schemas.graphql.event_parish_type import EventParishRegistrationType,AdmitParishInput,AdmitParishResponse
+from schemas.graphql.event_parish_type import EventParishRegistrationType,AdmitParishInput,AdmitParishResponse, EventParishRegistrationList
+from schemas.graphql.shared_types import EventMiniType, ParishMiniType, UserMiniType
+
 @strawberry.type
 class EventParishRegistrationQuery:
     @strawberry.field
@@ -23,20 +28,33 @@ class EventParishRegistrationQuery:
         info: Info,
         event_id: Optional[int] = None,
         parish_id: Optional[int] = None,
-    ) -> List[EventParishRegistrationType]:
+        page: int = 1,
+        limit: int = 10,
+        search: Optional[str] = None,
+    ) -> EventParishRegistrationList:
+    
         current_user = get_current_user(info)
         if not current_user:
             raise Exception("Unauthorized")
 
         db = SessionLocal()
         try:
-            registrations = get_event_parish_registrations(
-                db, event_id=event_id, parish_id=parish_id
+            registrations, total = get_event_parish_registrations(
+                db=db,
+                event_id=event_id,
+                parish_id=parish_id,
+                page=page,
+                limit=limit,
+                search=search,
             )
-            return [map_registration_to_type(item) for item in registrations]
+
+            return EventParishRegistrationList(
+                items=[map_registration_to_type(r) for r in registrations],
+                total_count=total,
+            )
+
         finally:
             db.close()
-
 
 @strawberry.type
 class EventParishRegistrationMutation:
@@ -92,7 +110,11 @@ class EventParishRegistrationMutation:
                 is_cleared=is_cleared,
                 clearance_note=clearance_note,
             )
+            db.commit()
             return map_registration_to_type(registration)
+        except Exception as e:
+            db.rollback()
+            raise e
         finally:
             db.close()
 
@@ -127,18 +149,44 @@ class EventParishRegistrationMutation:
             db.close()
             
 
-def map_registration_to_type(registration) -> EventParishRegistrationType:
+def map_registration_to_type(reg):
     return EventParishRegistrationType(
-        id=registration.id,
-        event_id=registration.event_id,
-        parish_id=registration.parish_id,
-        parish_name=registration.parish.name if registration.parish else "",
-        arrival_time=registration.arrival_time,
-        number_of_participants=registration.number_of_participants,
-        attendance_status=registration.attendance_status,
-        is_cleared=registration.is_cleared,
-        clearance_note=registration.clearance_note,
-        registered_by=registration.registered_by,
-        cleared_by=registration.cleared_by,
-        created_at=registration.created_at,
+        id=reg.id,
+
+        event=EventMiniType(
+            id=reg.event.id,
+            title=reg.event.title,
+            event_date=reg.event.event_date,
+            start_time=reg.event.start_time,
+            end_time=reg.event.end_time,
+            scope=reg.event.scope,
+        ) if reg.event else None,
+
+        parish=ParishMiniType(
+            id=reg.parish.id,
+            name=reg.parish.name,
+        ) if reg.parish else None,
+
+        arrival_time=reg.arrival_time,
+        number_of_participants=reg.number_of_participants,
+        attendance_status=reg.attendance_status,
+        is_cleared=reg.is_cleared,
+        clearance_note=reg.clearance_note,
+        fine_amount=reg.fine_amount,
+        created_at=reg.created_at,
+
+        registered_by=UserMiniType(
+            id=reg.registrar.id,
+            name=reg.registrar.name,
+        ) if reg.registrar else None,
+
+        cleared_by=UserMiniType(
+            id=reg.clearer.id,
+            name=reg.clearer.name,
+        ) if reg.clearer else None,
+
+        admitted_by=UserMiniType(
+            id=reg.admitter.id,
+            name=reg.admitter.name,
+        ) if reg.admitter else None,
     )
