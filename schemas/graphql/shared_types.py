@@ -3,7 +3,7 @@ import strawberry
 import enum
 from .outstation_type import OutstationType
 from typing import List, Optional
-import datetime
+from datetime import date, time
 
 @strawberry.type
 class ZoneType:
@@ -49,12 +49,33 @@ class UserType:
     name: str
     email: str
     phonenumber: str
-    dateofbirth: datetime.date
+    dateofbirth: date
     idnumber: int
     baptismref: str
     role: RoleEnum
     status: UserStatus
     profile_pic: Optional[str] = None
     parish: ParishType = None
-    created_at: datetime.date
-    updated_at: datetime.date
+    created_at: date
+    updated_at: date
+    
+@strawberry.type
+class UserMiniType:
+    id: int
+    name: str
+
+
+@strawberry.type
+class ParishMiniType:
+    id: int
+    name: str
+
+
+@strawberry.type
+class EventMiniType:
+    id: int
+    title: str
+    event_date: date
+    start_time: time
+    end_time: time
+    scope: str

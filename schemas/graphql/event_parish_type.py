@@ -2,20 +2,30 @@ import strawberry
 from typing import Optional
 from datetime import datetime
 
+from schemas.graphql.shared_types import EventMiniType, ParishMiniType, UserMiniType
+
 @strawberry.type
 class EventParishRegistrationType:
     id: int
-    event_id: int
-    parish_id: int
-    parish_name: str
+    event: EventMiniType
+    parish: ParishMiniType
+
     arrival_time: Optional[datetime]
     number_of_participants: int
     attendance_status: Optional[str]
     is_cleared: bool
     clearance_note: Optional[str]
-    registered_by: int
-    cleared_by: Optional[int]
+    fine_amount: float
     created_at: datetime
+
+    registered_by: Optional[UserMiniType]
+    cleared_by: Optional[UserMiniType]
+    admitted_by: Optional[UserMiniType]
+    
+@strawberry.type
+class EventParishRegistrationList:
+    items: list["EventParishRegistrationType"]
+    total_count: int
 
 @strawberry.input
 class AdmitParishInput:
