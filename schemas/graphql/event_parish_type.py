@@ -8,7 +8,7 @@ class EventParishRegistrationType:
     event_id: int
     parish_id: int
     parish_name: str
-    arrival_time: datetime
+    arrival_time: Optional[datetime]
     number_of_participants: int
     attendance_status: Optional[str]
     is_cleared: bool

@@ -92,7 +92,11 @@ class EventParishRegistrationMutation:
                 is_cleared=is_cleared,
                 clearance_note=clearance_note,
             )
+            db.commit()
             return map_registration_to_type(registration)
+        except Exception as e:
+            db.rollback()
+            raise e
         finally:
             db.close()
 

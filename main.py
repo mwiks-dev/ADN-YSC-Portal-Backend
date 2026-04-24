@@ -6,6 +6,8 @@ from scripts.seed_deaneries_parishes import seed_data
 from scripts.seed_super_user import seed_super_user
 from scripts.generate_deanery_prefixes import generate_deanery_prefixes
 from scripts.generate_parish_prefixes import generate_parish_prefixes
+
+from config.db import SessionLocal
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -29,19 +31,28 @@ def read_root():
 
 @app.on_event("startup")
 def on_startup():
-    seed_data()
-    seed_super_user()
+    # ====== Startup tasks ======
+    #===========================
+    #
+    # Uncomment the following lines to seed data and generate prefixes on startup
+    #
+    #============================
     
-    print("--- Prefix generation ---")
-    try:
-        generate_deanery_prefixes()
-        generate_parish_prefixes()
-        print("--- Prefixes OK ---")
-    except Exception as e:
-        print(f"[STARTUP ERROR] Prefix generation failed: {e}")
-        raise  # prevent app from starting in a broken state
+    # seed_data()
+    # seed_super_user()
+     
+    # print("--- Prefix generation ---")
+    # try:
+    #     generate_deanery_prefixes()
+    #     generate_parish_prefixes()
+    #     print("--- Prefixes OK ---")
+    # except Exception as e:
+    #     print(f"[STARTUP ERROR] Prefix generation failed: {e}")
+    #     raise  # prevent app from starting in a broken state
     
-    print("=== Startup complete ===")
+    # print("=== Startup complete ===")
+    
+    print("=== ADN API is running ===")
 
 #get origins from .env
 raw_origins = os.getenv("CORS_ORIGINS", "")

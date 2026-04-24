@@ -85,9 +85,12 @@ def _build_event_detail(db: Session, event: Event, current_user=None) -> EventDe
     zone = ZoneData(zone_row.id, zone_row.name) if zone_row else None
     deanery = DeaneryData(deanery_row.id, deanery_row.name) if deanery_row else None
 
-    registrations = db.query(EventParishRegistration)\
-        .filter(EventParishRegistration.event_id == event.id)\
+    registrations = (
+        db.query(EventParishRegistration)
+        .filter(EventParishRegistration.event_id == event.id)
+        .order_by(EventParishRegistration.id.desc())
         .all()
+    )
 
     registered_parishes = []
 
@@ -110,6 +113,9 @@ def _build_event_detail(db: Session, event: Event, current_user=None) -> EventDe
             registered_by=CreatorData(reg_by.id, reg_by.name) if reg_by else None,
             number_of_participants=reg.number_of_participants
         ))
+        
+        
+    capped_registered_parishes = registered_parishes[-5:]
 
     attended = sum(1 for p in registered_parishes if p.attendance_status == "attended")
     absent = sum(1 for p in registered_parishes if p.attendance_status == "absent")
@@ -154,7 +160,7 @@ def _build_event_detail(db: Session, event: Event, current_user=None) -> EventDe
         attended_parishes_count=attended,
         absent_parishes_count=absent,
 
-        registered_parishes=registered_parishes,
+        registered_parishes=capped_registered_parishes,
         my_parish_rsvpd=my_parish_rsvpd,
     )
 
