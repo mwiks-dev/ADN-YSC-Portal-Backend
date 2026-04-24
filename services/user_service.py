@@ -1,4 +1,5 @@
-from models.user import User, UserStatus, UserRole
+from models.user import User
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
@@ -26,11 +27,49 @@ def get_user_by_identifier(db:Session, identifier:str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirth:date ,idnumber:int,baptismref:str, password: str, role:str,status:str, profile_pic:str, parish_id:int):
+def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirth: date, idnumber: int, baptismref: str, password: str, role: str, status: str, profile_pic: str, parish_id: int):
     hashed_password = pwd_context.hash(password)
-    user = User(name=name, email=email, phonenumber=phonenumber,dateofbirth=dateofbirth, idnumber=idnumber,baptismref=baptismref, password=hashed_password, role=role, status=status, profile_pic=profile_pic, parish_id=parish_id)
+
+    user = User(
+        name=name,
+        email=email,
+        phonenumber=phonenumber,
+        dateofbirth=dateofbirth,
+        idnumber=idnumber,
+        baptismref=baptismref,
+        password=hashed_password,
+        role=role,
+        status=status,
+        profile_pic=profile_pic,
+        parish_id=parish_id,
+        created_at=date.today(),
+        updated_at=date.today(),
+    )
+
     db.add(user)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        # Retry once if the collision was on membership_no (race condition)
+        if "membership_no" in str(e.orig):
+            user.membership_no = None  # let the event listener re-generate
+            db.add(user)
+            try:
+                db.commit()
+            except IntegrityError as retry_err:
+                db.rollback()
+                raise ValueError("Failed to generate a unique membership number. Please try again.") from retry_err
+        elif "email" in str(e.orig):
+            raise ValueError(f"A user with email '{email}' already exists.")
+        elif "phonenumber" in str(e.orig):
+            raise ValueError(f"A user with phone number '{phonenumber}' already exists.")
+        elif "idnumber" in str(e.orig):
+            raise ValueError(f"A user with ID number '{idnumber}' already exists.")
+        else:
+            raise
+
     db.refresh(user)
     return user
 
