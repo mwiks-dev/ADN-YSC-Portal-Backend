@@ -14,6 +14,7 @@ from models.user import User, UserRole
 import imghdr
 import os
 from datetime import date
+from mailer.service import send_welcome_email
 
 from models.parish import Parish
 from models.deanery import Deanery
@@ -77,9 +78,12 @@ class UserQuery:
 @strawberry.type
 class UserMutation:
     @strawberry.mutation
-    def create_user(self, input: RegisterInput) -> UserType:
+    def create_user(self, info: Info, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        return create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value,input.profile_pic, input.parish_id)
+        user = create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value,input.profile_pic, input.parish_id)
+        info.context["background_tasks"].add_task(send_welcome_email, user.email, user.name)
+        db.close()
+        return user
 
     @strawberry.mutation
     def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
@@ -165,9 +169,11 @@ class UserMutation:
                     user.status = UserStatus.archived_member.value
                 else:
                     print(f"User '{user.name}' is {age} years old. Status remains Active.")
+                    
+        info.context["background_tasks"].add_task(send_welcome_email, user.email, user.name)
         db.commit()
         db.refresh(user)
-        
+              
         return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish, created_at=user.created_at, updated_at=user.updated_at)
 
     @strawberry.mutation
