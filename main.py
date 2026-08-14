@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
@@ -8,16 +11,21 @@ from scripts.generate_deanery_prefixes import generate_deanery_prefixes
 from scripts.generate_parish_prefixes import generate_parish_prefixes
 
 from config.db import SessionLocal
-from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter, BackgroundTasks, Depends
+
 import strawberry
 
-load_dotenv()
-
 app = FastAPI()
+async def get_context(background_tasks: BackgroundTasks) -> dict:
+    return {"background_tasks": background_tasks}
 
-graphql_app = GraphQLRouter(schema, multipart_uploads_enabled=True)
+graphql_app = GraphQLRouter(
+    schema,
+    context_getter=get_context,
+    multipart_uploads_enabled=True,
+)
 
 
 app.include_router(graphql_app, prefix="/graphql")
