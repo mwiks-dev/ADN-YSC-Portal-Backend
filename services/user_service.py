@@ -1,10 +1,13 @@
 from models.user import User
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+
+from models.role import Role
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import os
 from datetime import datetime, timedelta, date
+from typing import Optional
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -73,7 +76,7 @@ def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirt
     db.refresh(user)
     return user
 
-def update_user(db: Session, id: int, name: str, email: str, phonenumber: str,dateofbirth:date ,idnumber:int,baptismref:str, password: str,role:str, status:str, parish_id:int):
+def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, dateofbirth: date, idnumber: int, baptismref: str, password: Optional[str], role: str, status: str, parish_id: int):
     user = db.query(User).filter(User.id == id).first()
     if user:
         user.name = name
@@ -82,7 +85,8 @@ def update_user(db: Session, id: int, name: str, email: str, phonenumber: str,da
         user.dateofbirth = dateofbirth
         user.idnumber = idnumber
         user.baptismref = baptismref
-        user.password = pwd_context.hash(password)
+        if password:
+            user.password = pwd_context.hash(password)
         user.role = role
         user.status = status
         user.parish_id = parish_id
@@ -135,3 +139,9 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
     db.commit()
     db.refresh(user)
     return user
+
+def get_user_by_identifier(db: Session, identifier: str):
+    query = db.query(User).options(joinedload(User.roles).joinedload(Role.permissions))
+    if "@" in identifier:
+        return query.filter(User.email == identifier).first()
+    return query.filter(User.phonenumber == identifier).first()

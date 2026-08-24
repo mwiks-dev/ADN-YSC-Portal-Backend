@@ -1,41 +1,13 @@
+# utils/auth_utils.py
 from strawberry.types import Info
 from typing import Optional
 from services.user_service import verify_token, get_user_by_identifier
 from config.db import SessionLocal
-from schemas.graphql.shared_types import UserType
+from models.user import User
+from utils.permission_utils import user_has_role, user_has_permission
 
 
-def is_chaplain(user) -> bool:
-    return user and getattr(user, "role", None) == "ysc_chaplain"
-
-def is_ysc_coordinator(user) -> bool:
-    return user and getattr(user, "role", None) == "ysc_coordinator"
-
-def is_deanery_moderator(user) -> bool:
-    return user and getattr(user, "role", None) == "deanery_moderator"
-
-def is_parish_moderator(user) -> bool:
-    return user and getattr(user, "role", None) == "parish_moderator"
-
-def is_parish_member(user) -> bool:
-    return user and getattr(user, "role", None) == "parish_member"
-
-def is_authenticated(user) -> bool:
-    return user is not None
-
-def is_superuser(user) -> bool:
-    return user and getattr(user, "role", None) == "super_user"
-
-def can_register_users(user) -> bool:
-    return any([
-        is_chaplain(user),
-        is_ysc_coordinator(user),
-        is_deanery_moderator(user),
-        is_parish_moderator(user),
-        is_superuser(user)
-    ])
-
-def get_current_user(info: Info) -> Optional[UserType]:
+def get_current_user(info: Info) -> Optional[User]:
     auth_header = info.context.get("request").headers.get("authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return None
@@ -50,3 +22,33 @@ def get_current_user(info: Info) -> Optional[UserType]:
     finally:
         db.close()
 
+
+# --- Deprecated bridge functions ---
+# Kept for backward compatibility with zone_schema.py, parish_schema.py,
+# deanery_schema.py, event_parish_registration_service.py.
+# New code should call user_has_permission()/user_has_role() directly.
+# TODO: migrate these call sites, then delete everything below.
+
+def is_chaplain(user) -> bool:
+    return user_has_role(user, "ysc_chaplain")
+
+def is_ysc_coordinator(user) -> bool:
+    return user_has_role(user, "ysc_coordinator")
+
+def is_deanery_moderator(user) -> bool:
+    return user_has_role(user, "deanery_moderator")
+
+def is_parish_moderator(user) -> bool:
+    return user_has_role(user, "parish_moderator")
+
+def is_parish_member(user) -> bool:
+    return user_has_role(user, "parish_member")
+
+def is_superuser(user) -> bool:
+    return user_has_role(user, "super_user")
+
+def is_authenticated(user) -> bool:
+    return user is not None
+
+def can_register_users(user) -> bool:
+    return user_has_permission(user, "users.create")
