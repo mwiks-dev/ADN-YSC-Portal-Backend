@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Date, event
 from sqlalchemy.orm import relationship, Session
 from config.db import Base
 from utils.membership_utils import generate_membership_no
+from models.role import model_has_roles
 import enum
 
 class UserRole(str,enum.Enum):
@@ -31,6 +32,7 @@ class User(Base):
     profile_pic = Column(String(255), nullable=True)
 
     events = relationship("Event", back_populates="creator")
+    roles = relationship("Role", secondary=model_has_roles, back_populates="users")
 
     membership_no = Column(String(20), index=True, unique=True, nullable=True)
     parish_id = Column(Integer, ForeignKey("parishes.id"))

@@ -56,6 +56,7 @@ class UserType:
     status: UserStatus
     profile_pic: Optional[str] = None
     parish: ParishType = None
+    permissions: List[str] = strawberry.field(default_factory=list)
     created_at: date
     updated_at: date
     

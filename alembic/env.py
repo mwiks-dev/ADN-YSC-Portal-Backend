@@ -10,6 +10,8 @@ from models.outstation import Outstation
 from models.zone import Zone
 from models.event import Event
 from models.event_parish_registration import EventParishRegistration
+from models.role import Role
+from models.permission import Permission
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,6 +32,8 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+# print(">>> DEBUG sqlalchemy.url:", config.get_main_option("sqlalchemy.url"))
+# print(">>> DEBUG tables in metadata:", sorted(target_metadata.tables.keys()))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

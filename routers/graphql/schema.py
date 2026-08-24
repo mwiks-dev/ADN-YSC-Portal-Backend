@@ -5,14 +5,15 @@ from .zone_schema import ZoneQuery as ZoneQuery
 from .dashboard_schema import DashboardQuery as DashboardQuery
 from .event_schema import EventQuery as EventQuery, EventMutation as EventMutation
 from .event_parish_registration_schema import EventParishRegistrationQuery as EventParishRegistrationQuery, EventParishRegistrationMutation as EventParishRegistrationMutation
+from .role_schema import RoleQuery, RoleMutation
 import strawberry
 
 @strawberry.type
-class Query(UserQuery, ParishQuery, DeaneryQuery, DashboardQuery, ZoneQuery, EventQuery, EventParishRegistrationQuery):
+class Query(UserQuery, ParishQuery, DeaneryQuery, DashboardQuery, ZoneQuery, EventQuery, EventParishRegistrationQuery, RoleQuery):
     pass
 
 @strawberry.type
-class Mutation(UserMutation, ParishMutation, DeaneryMutation, EventMutation,EventParishRegistrationMutation):
+class Mutation(UserMutation, ParishMutation, DeaneryMutation, EventMutation,EventParishRegistrationMutation, RoleMutation):
     pass
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

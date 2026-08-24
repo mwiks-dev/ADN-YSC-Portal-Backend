@@ -1,6 +1,8 @@
 from models.user import User
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+
+from models.role import Role
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import os
@@ -135,3 +137,9 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
     db.commit()
     db.refresh(user)
     return user
+
+def get_user_by_identifier(db: Session, identifier: str):
+    query = db.query(User).options(joinedload(User.roles).joinedload(Role.permissions))
+    if "@" in identifier:
+        return query.filter(User.email == identifier).first()
+    return query.filter(User.phonenumber == identifier).first()

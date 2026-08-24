@@ -1,29 +1,37 @@
-import datetime
 import strawberry
 from strawberry.types import Info
 from strawberry.file_uploads import Upload
 from typing import Optional
 from sqlalchemy.orm import joinedload
 from config.db import SessionLocal
-from schemas.graphql.user_type import UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput, LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse, UpdateUserRoleInput, UpdateUserPasswordResponse
+from schemas.graphql.user_type import (
+    UpdateUserInput, RegisterInput, LoginInput, TokenType, ResetPasswordInput,
+    LoginPayload, SearchInput, UserListResponse, UploadProfilePicResponse,
+    UpdateUserRoleInput, UpdateUserPasswordResponse
+)
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
-from services.user_service import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, authenticate_user, create_access_token, reset_password
-from utils.auth_utils import is_chaplain, is_ysc_coordinator, can_register_users, is_superuser, get_current_user
+
+from services.user_service import (
+    get_user_by_id, get_user_by_email, create_user, update_user, delete_user,
+    authenticate_user, create_access_token
+)
+from utils.auth_utils import get_current_user
+from utils.permission_utils import user_has_permission, get_user_permission_names
+from utils.scope_utils import can_manage_parish
 from passlib.context import CryptContext
 from models.user import User, UserRole
+from models.role import Role
+from models.parish import Parish
+from models.deanery import Deanery
 import imghdr
 import os
 from datetime import date
 from mailer.service import send_welcome_email
 
-from models.parish import Parish
-from models.deanery import Deanery
-from models.user import User
-
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-    
+
+
 @strawberry.type
 class UserQuery:
     @strawberry.field
@@ -35,17 +43,17 @@ class UserQuery:
 
     @strawberry.field
     def users(self, info: Info, input: SearchInput) -> UserListResponse:
-        user = get_current_user(info)
-        if not can_register_users(user):
+        current_user = get_current_user(info)
+        if not user_has_permission(current_user, "users.view"):
             raise Exception("Unauthorized!")
-        
+
         db = SessionLocal()
         query = db.query(User).order_by(User.id.desc(), User.parish_id.asc())
 
-        if input.search.strip():  # Only filter by name if search is not empty
+        if input.search.strip():
             search = f"%{input.search.strip()}%"
-            query = query.filter(User.name.ilike(search))  # Case-insensitive match
-            
+            query = query.filter(User.name.ilike(search))
+
         if input.parish_id is not None:
             query = query.filter(User.parish_id == input.parish_id)
 
@@ -53,128 +61,132 @@ class UserQuery:
         offset = (input.page - 1) * input.limit
         users = query.offset(offset).limit(input.limit).all()
 
-        result = []
-        for user in users:
-            result.append(
-                UserType(
-                    id=user.id,
-                    name=user.name,
-                    email=user.email,
-                    phonenumber=user.phonenumber,
-                    dateofbirth = user.dateofbirth,
-                    idnumber = user.idnumber,
-                    baptismref = user.baptismref,
-                    profile_pic= user.profile_pic,
-                    role=RoleEnum(user.role.value), 
-                    status = UserStatus(user.status.value),
-                    parish=user.parish,
-                    created_at=user.created_at,
-                    updated_at=user.updated_at
-                )
+        result = [
+            UserType(
+                id=u.id, name=u.name, email=u.email, phonenumber=u.phonenumber,
+                dateofbirth=u.dateofbirth, idnumber=u.idnumber, baptismref=u.baptismref,
+                profile_pic=u.profile_pic, role=RoleEnum(u.role.value), status=UserStatus(u.status.value),
+                parish=u.parish, created_at=u.created_at, updated_at=u.updated_at
             )
+            for u in users
+        ]
+        return UserListResponse(users=result, totalCount=total_count)
 
-        return UserListResponse(users = result, totalCount=total_count)
-    
+
 @strawberry.type
 class UserMutation:
-    @strawberry.mutation
-    def create_user(self, info: Info, input: RegisterInput) -> UserType:
-        db = SessionLocal()
-        user = create_user(db, input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value, input.status.value,input.profile_pic, input.parish_id)
-        info.context["background_tasks"].add_task(send_welcome_email, user.email, user.name)
-        db.close()
-        return user
+    # NOTE: the old ungated `create_user` mutation has been removed.
+    # `register` is now the single, properly-gated entry point for creating users.
 
     @strawberry.mutation
-    def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
-        user = get_current_user(info)
-        if not user:
-            raise Exception("Unauthorized")
-        if not (is_chaplain(user) or is_superuser(user) or user.id == input.id):
-            raise Exception("You can only update your own information!")
+    def register(self, info: Info, input: RegisterInput) -> UserType:
         db = SessionLocal()
-        try:
-        # ✅ Check if email already exists for another user
-            if input.email:
-                existing_email = (
-                db.query(User)
-                .filter(User.email == input.email, User.id != input.id)
-                .first()
-                )
-                if existing_email:
-                    raise Exception("Email is already in use by another user.")
-
-            # ✅ Check if phone number already exists for another user
-            if input.phonenumber:
-                existing_phone = (
-                    db.query(User)
-                    .filter(User.phonenumber == input.phonenumber, User.id != input.id)
-                    .first()
-                )
-                if existing_phone:
-                    raise Exception("Phone number is already in use by another user.")
-
-            # ✅ Perform the update
-            updated_user = update_user(
-                db,
-                input.id,
-                input.name,
-                input.email,
-                input.phonenumber,
-                input.dateofbirth,
-                input.idnumber,
-                input.baptismref,
-                input.password,
-                input.role.value,
-                input.status.value,
-                input.parish_id
-            )
-            db.commit()
-            return updated_user
-
-        except Exception as e:
-            db.rollback()
-            raise Exception(f"Update failed: {str(e)}")
-
-        finally:
-            db.close()
-            
-    @strawberry.mutation
-    def delete_user(self, info: Info, id: int) -> Optional[UserType]:
-        user = get_current_user(info)
-        if not can_register_users(user):
-            raise Exception("Unauthorized!")
-        db = SessionLocal()
-        return delete_user(db, id)
-    
-    @strawberry.mutation
-    def register(self, info:Info, input:RegisterInput) -> UserType:
-        db = SessionLocal()
-        existing_user = get_user_by_email(db,input.email)
-        if existing_user:
-            raise Exception("User with this email already exists")
         current_user = get_current_user(info)
         if not current_user:
             raise Exception("Unauthorized")
-        if not can_register_users(current_user):
-            raise Exception("Unauthorized: Only the Chaplain, Coordinators, Deanery or Parish Moderators can register members.")
-        user = create_user(db,input.name, input.email, input.phonenumber,input.dateofbirth, input.idnumber, input.baptismref, input.password, input.role.value,input.status.value, input.profile_pic, input.parish_id )
-        print(f"User '{user.name}' registered. Checking for members to archive...")
+        if not user_has_permission(current_user, "users.create"):
+            raise Exception("Unauthorized: You do not have permission to register members.")
+        if not can_manage_parish(db, current_user, input.parish_id):
+            raise Exception("Unauthorized: You can only register members within your own parish/deanery.")
+
+        existing_user = get_user_by_email(db, input.email)
+        if existing_user:
+            raise Exception("User with this email already exists")
+
+        user = create_user(
+            db, input.name, input.email, input.phonenumber, input.dateofbirth,
+            input.idnumber, input.baptismref, input.password, input.role.value,
+            input.status.value, input.profile_pic, input.parish_id
+        )
+
+        # Assign the new user's role in the permission system (legacy `role`
+        # column is set by create_user() already; this keeps model_has_roles in sync).
+        role_obj = db.query(Role).filter(Role.name == input.role.value).first()
+        if role_obj:
+            user.roles.append(role_obj)
+
         if user.role == UserRole.parish_member and user.dateofbirth:
-                today = date.today()
-                age = today.year - user.dateofbirth.year - ((today.month, today.day) < (user.dateofbirth.month, user.dateofbirth.day))
-                
-                if age >= 27:
-                    print(f"User '{user.name}' is {age} years old. Automatically setting status to Archived.")
-                    user.status = UserStatus.archived_member.value
-                else:
-                    print(f"User '{user.name}' is {age} years old. Status remains Active.")
-                    
+            today = date.today()
+            age = today.year - user.dateofbirth.year - ((today.month, today.day) < (user.dateofbirth.month, user.dateofbirth.day))
+            if age >= 27:
+                user.status = UserStatus.archived_member.value
+
         info.context["background_tasks"].add_task(send_welcome_email, user.email, user.name)
         db.commit()
         db.refresh(user)
-              
-        return UserType(id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,dateofbirth = user.dateofbirth, idnumber = user.idnumber, baptismref=user.baptismref, role= user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish, created_at=user.created_at, updated_at=user.updated_at)
+
+        return UserType(
+            id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,
+            dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref=user.baptismref,
+            role=user.role, status=user.status, profile_pic=user.profile_pic, parish=user.parish,
+            created_at=user.created_at, updated_at=user.updated_at
+        )
+
+    @strawberry.mutation
+    def update_user(self, info: Info, input: UpdateUserInput) -> Optional[UserType]:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
+
+        db = SessionLocal()
+        try:
+            target_user = db.query(User).filter(User.id == input.id).first()
+            if not target_user:
+                raise Exception("User not found")
+
+            is_self = current_user.id == input.id
+            if is_self:
+                if not user_has_permission(current_user, "users.update.self"):
+                    raise Exception("Unauthorized: You do not have permission to update your own profile.")
+            else:
+                if not user_has_permission(current_user, "users.update"):
+                    raise Exception("Unauthorized: You do not have permission to update other members.")
+                if not can_manage_parish(db, current_user, target_user.parish_id):
+                    raise Exception("Unauthorized: You can only update members within your own parish/deanery.")
+
+            if input.email:
+                existing_email = db.query(User).filter(User.email == input.email, User.id != input.id).first()
+                if existing_email:
+                    raise Exception("Email is already in use by another user.")
+
+            if input.phonenumber:
+                existing_phone = db.query(User).filter(User.phonenumber == input.phonenumber, User.id != input.id).first()
+                if existing_phone:
+                    raise Exception("Phone number is already in use by another user.")
+
+            updated_user = update_user(
+                db, input.id, input.name, input.email, input.phonenumber, input.dateofbirth,
+                input.idnumber, input.baptismref, input.password, input.role.value,
+                input.status.value, input.parish_id
+            )
+            db.commit()
+            return updated_user
+        except Exception as e:
+            db.rollback()
+            raise Exception(f"Update failed: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_user(self, info: Info, id: int) -> Optional[UserType]:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
+
+        db = SessionLocal()
+        try:
+            target_user = db.query(User).filter(User.id == id).first()
+            if not target_user:
+                raise Exception("User not found")
+
+            if not user_has_permission(current_user, "users.delete"):
+                raise Exception("Unauthorized!")
+            if not can_manage_parish(db, current_user, target_user.parish_id):
+                raise Exception("Unauthorized: You can only delete members within your own parish/deanery.")
+
+            return delete_user(db, id)
+        finally:
+            db.close()
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> Optional[LoginPayload]:
@@ -183,74 +195,55 @@ class UserMutation:
             identifier = input.username
             if not identifier:
                 raise Exception("Please provide either email or phone number.")
-            
-            # Authenticate the user
+
             user = authenticate_user(db, identifier, input.password)
             if not user:
                 raise Exception("Invalid credentials")
-            
-            # Reload user with nested relationships eagerly loaded
+
             user = (
                 db.query(User)
-                .options(
-                    joinedload(User.parish)
-                    .joinedload(Parish.deanery)
-                    .joinedload(Deanery.zone)
-                )
+                .options(joinedload(User.parish).joinedload(Parish.deanery).joinedload(Deanery.zone))
                 .filter(User.id == user.id)
                 .first()
             )
-            
-            # Generate token
+
             token = create_access_token(data={"sub": user.phonenumber or user.email})
-            
-            # Return payload
+
             return LoginPayload(
                 token=TokenType(access_token=token, token_type="bearer"),
                 user=UserType(
-                    id=user.id,
-                    name=user.name,
-                    email=user.email,
-                    phonenumber=user.phonenumber,
-                    dateofbirth=user.dateofbirth,
-                    idnumber=user.idnumber,
-                    baptismref=user.baptismref,
-                    role=user.role,
-                    status=user.status,
-                    parish=user.parish,
-                    profile_pic=user.profile_pic,
-                    created_at=user.created_at,
-                    updated_at=user.updated_at
+                    id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,
+                    dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref=user.baptismref,
+                    role=user.role, status=user.status, parish=user.parish, profile_pic=user.profile_pic,
+                    created_at=user.created_at, updated_at=user.updated_at,permissions=get_user_permission_names(user),
                 )
             )
         finally:
             db.close()
 
-    @strawberry.mutation 
-    async def upload_profile_pic(self,user_id:int, file:Upload) -> UploadProfilePicResponse:
+    @strawberry.mutation
+    async def upload_profile_pic(self, user_id: int, file: Upload) -> UploadProfilePicResponse:
         db = SessionLocal()
         user = db.query(User).get(user_id)
         if not user:
             raise Exception("User not found.")
-        
-        allowed_types = ['jpeg','png','jpg']
+
+        allowed_types = ['jpeg', 'png', 'jpg']
         file_type = imghdr.what(file.file)
         if file_type not in allowed_types:
             raise Exception("Invalid file type. Only png, jpeg,jpg are allowed.")
-        #validate file size(max 500KB)
-        file.file.seek(0,2)
+        file.file.seek(0, 2)
         file_size = file.file.tell()
         if file_size > 500 * 1024:
             raise Exception("File too large. Maximum allowed size is 500KB.")
-        
+
         file.file.seek(0)
         contents = await file.read()
         filename = f"user_{user_id}_profile.{file_type}"
         filepath = f"static/profile_pics/{filename}"
         with open(filepath, "wb") as f:
-            f.write(contents) 
-        # Update the user in DB
-      
+            f.write(contents)
+
         user.profile_pic = filename
         db.commit()
         db.refresh(user)
@@ -258,30 +251,20 @@ class UserMutation:
         return UploadProfilePicResponse(
             message="Profile picture updated successfully!",
             user=UserType(
-                id=user.id,
-                name=user.name,
-                email=user.email,
-                phonenumber=user.phonenumber,
-                dateofbirth=user.dateofbirth,
-                idnumber=user.idnumber,
-                baptismref=user.baptismref,
-                role=user.role,
-                parish=user.parish,
-                status=user.status,
-                profile_pic=user.profile_pic,
-                created_at=user.created_at,
-                updated_at=user.updated_at
+                id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref=user.baptismref,
+                role=user.role, parish=user.parish, status=user.status, profile_pic=user.profile_pic,
+                created_at=user.created_at, updated_at=user.updated_at
+            )
         )
-    )
 
     @strawberry.mutation
-    def reset_password(self, info:Info, input: ResetPasswordInput) -> UpdateUserPasswordResponse:
+    def reset_password(self, info: Info, input: ResetPasswordInput) -> UpdateUserPasswordResponse:
         user = get_current_user(info)
         if not user or user.email != input.email:
             raise Exception("Unauthorized: Token mismatch or invalid user")
         db = SessionLocal()
         db_user = get_user_by_email(db, input.email)
-        print(input.old_password, db_user.email)
         if not db_user:
             raise Exception("User not found")
         if not pwd_context.verify(input.old_password, db_user.password):
@@ -290,64 +273,52 @@ class UserMutation:
         db_user.password = pwd_context.hash(input.new_password)
         db.commit()
         db.refresh(db_user)
-        
+
         return UpdateUserPasswordResponse(
             message="Password reset successful",
             user=UserType(
-                id=user.id,
-                name=user.name,
-                email=user.email,
-                phonenumber=user.phonenumber,
-                dateofbirth=user.dateofbirth,
-                idnumber=user.idnumber,
-                baptismref=user.baptismref,
-                role=user.role,
-                parish=user.parish,
-                status=user.status,
-                profile_pic=user.profile_pic,
-                created_at=user.created_at,
-                updated_at=user.updated_at
+                id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,
+                dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref=user.baptismref,
+                role=user.role, parish=user.parish, status=user.status, profile_pic=user.profile_pic,
+                created_at=user.created_at, updated_at=user.updated_at
             )
         )
-    
+
     @strawberry.mutation
-    def update_user_role(self, info:Info, input:UpdateUserRoleInput) -> UserType:
+    def update_user_role(self, info: Info, input: UpdateUserRoleInput) -> UserType:
         db = SessionLocal()
         try:
             current_user = get_current_user(info)
-            target_user = db.query(User).filter(User.id == input.user_id).first()
-
             if not current_user:
                 raise Exception("Authentication required. Please log in.")
 
+            target_user = db.query(User).filter(User.id == input.user_id).first()
             if not target_user:
                 raise Exception(f"User with ID {input.user_id} not found.")
 
-            allowed_roles = {UserRole.super_user.value, UserRole.ysc_chaplain.value, UserRole.ysc_coordinator.value}
-            if current_user.role not in allowed_roles:
+            if not user_has_permission(current_user, "users.role.assign"):
                 raise Exception("Unauthorized: You do not have permission to change user roles.")
 
             if current_user.id == target_user.id:
                 raise Exception("Action forbidden: You cannot change your own role.")
 
-            protected_roles = {UserRole.super_user.value, UserRole.ysc_chaplain.value}
-            if target_user.role in protected_roles:
-                raise Exception(f"Action forbidden: The role of a {target_user.role.name} cannot be changed.")
+            protected_role_names = {"super_user", "ysc_chaplain"}
+            existing_role_names = {r.name for r in target_user.roles}
+            if existing_role_names & protected_role_names:
+                raise Exception("Action forbidden: This user's role cannot be changed.")
 
-            target_user.role = input.new_role.value
+            new_role = db.query(Role).filter(Role.name == input.new_role.value).first()
+            if not new_role:
+                raise Exception(f"Role '{input.new_role.value}' does not exist.")
+
+            target_user.roles = [new_role]       # new permission system, source of truth
+            target_user.role = input.new_role.value  # legacy column, kept in sync during transition
+
             db.commit()
             db.refresh(target_user)
-
-            print(f"User '{target_user.name}' (ID: {target_user.id}) role updated to '{target_user.role.name}' by '{current_user.name}'.")
-
             return target_user
-
         finally:
             db.close()
 
-
-
-
-        
 
 schema = strawberry.Schema(query=UserQuery, mutation=UserMutation)
