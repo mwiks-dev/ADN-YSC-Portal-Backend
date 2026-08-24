@@ -10,26 +10,29 @@ from schemas.graphql.user_type import (
     UpdateUserRoleInput, UpdateUserPasswordResponse
 )
 from schemas.graphql.shared_types import UserType, RoleEnum, UserStatus
-
 from services.user_service import (
-    get_user_by_id, get_user_by_email, create_user, update_user, delete_user,
+    get_user_by_id, get_user_by_email, get_user_by_identifier, create_user, update_user, delete_user,
     authenticate_user, create_access_token
 )
 from utils.auth_utils import get_current_user
 from utils.permission_utils import user_has_permission, get_user_permission_names
 from utils.scope_utils import can_manage_parish
+from utils.password_utils import generate_default_password
 from passlib.context import CryptContext
 from models.user import User, UserRole
 from models.role import Role
 from models.parish import Parish
 from models.deanery import Deanery
+from mailer.service import send_welcome_email, send_password_reset_email
+
 import imghdr
 import os
+import logging
 from datetime import date
-from mailer.service import send_welcome_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -159,8 +162,14 @@ class UserMutation:
                 input.idnumber, input.baptismref, input.password, input.role.value,
                 input.status.value, input.parish_id
             )
-            db.commit()
-            return updated_user
+
+            return UserType(
+                id=updated_user.id, name=updated_user.name, email=updated_user.email,
+                phonenumber=updated_user.phonenumber, dateofbirth=updated_user.dateofbirth,
+                idnumber=updated_user.idnumber, baptismref=updated_user.baptismref,
+                role=updated_user.role, status=updated_user.status, profile_pic=updated_user.profile_pic,
+                parish=updated_user.parish, created_at=updated_user.created_at, updated_at=updated_user.updated_at
+            )
         except Exception as e:
             db.rollback()
             raise Exception(f"Update failed: {str(e)}")
@@ -202,7 +211,10 @@ class UserMutation:
 
             user = (
                 db.query(User)
-                .options(joinedload(User.parish).joinedload(Parish.deanery).joinedload(Deanery.zone))
+                .options(
+                    joinedload(User.parish).joinedload(Parish.deanery).joinedload(Deanery.zone),
+                    joinedload(User.roles).joinedload(Role.permissions),
+                )
                 .filter(User.id == user.id)
                 .first()
             )
@@ -215,7 +227,8 @@ class UserMutation:
                     id=user.id, name=user.name, email=user.email, phonenumber=user.phonenumber,
                     dateofbirth=user.dateofbirth, idnumber=user.idnumber, baptismref=user.baptismref,
                     role=user.role, status=user.status, parish=user.parish, profile_pic=user.profile_pic,
-                    created_at=user.created_at, updated_at=user.updated_at,permissions=get_user_permission_names(user),
+                    created_at=user.created_at, updated_at=user.updated_at,
+                    permissions=get_user_permission_names(user),
                 )
             )
         finally:
@@ -317,6 +330,77 @@ class UserMutation:
             db.commit()
             db.refresh(target_user)
             return target_user
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def request_password_reset(self, info: Info, identifier: str) -> str:
+        """
+        Self-service password reset. Unauthenticated by design — a member who
+        forgot their password can't present a Bearer token. Always returns a
+        generic message regardless of whether the identifier matched a user,
+        to avoid leaking which emails/phone numbers exist in the system.
+        """
+        db = SessionLocal()
+        try:
+            target_user = get_user_by_identifier(db, identifier)
+            if target_user:
+                try:
+                    new_password = generate_default_password(target_user)
+                    target_user.password = pwd_context.hash(new_password)
+                    db.commit()
+                    db.refresh(target_user)
+                    info.context["background_tasks"].add_task(
+                        send_password_reset_email, target_user.email, target_user.name, new_password
+                    )
+                except Exception:
+                    # Catches missing-DOB (ValueError) as well as any DB/email failure.
+                    # Never let this surface differently than the "no match" case below —
+                    # doing so would let an attacker distinguish valid identifiers by error shape.
+                    db.rollback()
+                    logger.exception("Password reset failed for identifier %s", identifier)
+
+            return "If an account matches these details, a password reset email has been sent."
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def reset_member_password(self, info: Info, user_id: int) -> UpdateUserPasswordResponse:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
+
+        db = SessionLocal()
+        try:
+            target_user = db.query(User).filter(User.id == user_id).first()
+            if not target_user:
+                raise Exception("User not found")
+
+            if not user_has_permission(current_user, "users.password.reset"):
+                raise Exception("Unauthorized: You do not have permission to reset member passwords.")
+            if not can_manage_parish(db, current_user, target_user.parish_id):
+                raise Exception("Unauthorized: You can only reset passwords for members within your own parish/deanery.")
+
+            new_password = generate_default_password(target_user)
+            target_user.password = pwd_context.hash(new_password)
+            db.commit()
+            db.refresh(target_user)
+
+            info.context["background_tasks"].add_task(
+                send_password_reset_email, target_user.email, target_user.name, new_password
+            )
+
+            return UpdateUserPasswordResponse(
+                message="Password reset to default successfully",
+                user=UserType(
+                    id=target_user.id, name=target_user.name, email=target_user.email,
+                    phonenumber=target_user.phonenumber, dateofbirth=target_user.dateofbirth,
+                    idnumber=target_user.idnumber, baptismref=target_user.baptismref,
+                    role=target_user.role, parish=target_user.parish, status=target_user.status,
+                    profile_pic=target_user.profile_pic, created_at=target_user.created_at,
+                    updated_at=target_user.updated_at
+                )
+            )
         finally:
             db.close()
 

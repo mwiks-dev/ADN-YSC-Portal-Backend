@@ -10,6 +10,7 @@ PERMISSIONS = [
     ("users.update.self", "Update own profile"),
     ("users.delete", "Delete a user"),
     ("users.role.assign", "Change a user's role"),
+     ("users.password.reset", "Reset a member's password to the system default"),
 ]
 
 # role_name -> list of permission names
@@ -17,8 +18,8 @@ ROLE_PERMISSIONS = {
     "super_user": ["*"],
     "ysc_chaplain": ["*"],
     "ysc_coordinator": ["*"],
-    "deanery_moderator": ["users.view", "users.create", "users.update.self"],
-    "parish_moderator": ["users.view", "users.create", "users.update.self"],
+    "deanery_moderator": ["users.view", "users.view.any", "users.create", "users.update.self", "users.password.reset"],
+    "parish_moderator": ["users.view", "users.create", "users.update.self", "users.password.reset"],
     "parish_member": ["users.update.self"],
 }
 

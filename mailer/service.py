@@ -28,3 +28,22 @@ async def send_welcome_email(email: str, name: str) -> None:
         await fm.send_message(message, template_name="welcome.html")
     except Exception:
         logger.exception("Failed to send welcome email to %s", email)
+
+async def send_password_reset_email(email: str, name: str, new_password: str) -> None:
+    try:
+        message = MessageSchema(
+            subject="Your Password Has Been Reset",
+            recipients=[email],
+            template_body={
+                "name": name,
+                "email": email,
+                "new_password": new_password,
+                "FRONT_END_URL": f"{FRONT_END_URL}/login",
+                "SUPPORT_URL": SUPPORT_URL,
+                "year": date.today().year,
+            },
+            subtype=MessageType.html,
+        )
+        await fm.send_message(message, template_name="password_reset.html")
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", email)

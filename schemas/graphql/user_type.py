@@ -26,7 +26,7 @@ class UpdateUserInput:
     dateofbirth: datetime.date
     idnumber: int
     baptismref: str
-    password: str
+    password: Optional[str] = strawberry.field(default=None)
     role: RoleEnum
     status: UserStatus
     parish_id: int
