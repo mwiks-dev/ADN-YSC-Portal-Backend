@@ -13,9 +13,9 @@ class UserRole(str,enum.Enum):
     super_user = "super_user"
 
 class UserStatus(str, enum.Enum):
-    active_member = "active_member"
-    archived_member = "archived_member"
-    transitioned_member = "transitioned_member"  
+    active_member = "Active"
+    archived_member = "Archived"
+    transitioned_member = "Transitioned"  
 
 class User(Base):
     __tablename__ = "users"
