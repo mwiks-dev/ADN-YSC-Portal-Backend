@@ -5,6 +5,7 @@ from models.permission import Permission
 PERMISSIONS = [
     ("*", "Full access - bypasses all other permission checks"),
     ("users.view", "View user list / search"),
+    ("users.view.any", "View user list / search"),
     ("users.create", "Create a new user"),
     ("users.update", "Update any user's profile"),
     ("users.update.self", "Update own profile"),
