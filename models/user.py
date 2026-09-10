@@ -34,12 +34,18 @@ class User(Base):
 
     events = relationship("Event", back_populates="creator")
     roles = relationship("Role", secondary=model_has_roles, back_populates="users")
-
+    
     membership_no = Column(String(20), index=True, unique=True, nullable=True)
     parish_id = Column(Integer, ForeignKey("parishes.id"))
     parish = relationship("Parish", back_populates="users")
     created_at = Column(Date)
     updated_at = Column(Date)
+    
+    @property
+    def permissions(self):
+        perms = {p.name for role in self.roles for p in role.permissions}
+        return list(perms)
+
 
 @event.listens_for(User, "before_insert")
 def set_membership_no(mapper, connection, target):
@@ -50,3 +56,4 @@ def set_membership_no(mapper, connection, target):
             target.membership_no = generate_membership_no(db, target.parish_id)
     finally:
         db.close()
+        

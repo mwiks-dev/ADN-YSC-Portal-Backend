@@ -16,16 +16,26 @@ ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 def get_user_by_id(db: Session, user_id: int):
-    return db.query(User).filter(User.id == user_id).first()
+    return (
+        db.query(User)
+        .options(joinedload(User.roles).joinedload(Role.permissions))
+        .filter(User.id == user_id)
+        .first()
+    )
 
-def get_user_by_email(db:Session, user_email:str):
-    return db.query(User).filter(User.email == user_email).first()
+def get_user_by_email(db: Session, user_email: str):
+    return (
+        db.query(User)
+        .options(joinedload(User.roles).joinedload(Role.permissions))
+        .filter(User.email == user_email)
+        .first()
+    )
 
-def get_user_by_identifier(db:Session, identifier:str):
+def get_user_by_identifier(db: Session, identifier: str):
+    query = db.query(User).options(joinedload(User.roles).joinedload(Role.permissions))
     if "@" in identifier:
-        return db.query(User).filter(User.email == identifier).first()
-    # Otherwise, assume it’s a phone number
-    return db.query(User).filter(User.phonenumber == identifier).first()
+        return query.filter(User.email == identifier).first()
+    return query.filter(User.phonenumber == identifier).first()
 
 def get_users(db: Session):
     return db.query(User).all()
@@ -115,7 +125,7 @@ def authenticate_user(db: Session, identifier: str, password: str):
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.now() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire,  "sub": data.get("sub")})
+    to_encode.update({"exp": expire, "sub": data.get("sub")})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str):
@@ -127,7 +137,7 @@ def verify_token(token: str):
         return username
     except JWTError:
         return None
-    
+
 def reset_password(db: Session, email: str, old_password: str, new_password: str):
     user = get_user_by_email(db, email)
     if not user:
@@ -139,9 +149,3 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
     db.commit()
     db.refresh(user)
     return user
-
-def get_user_by_identifier(db: Session, identifier: str):
-    query = db.query(User).options(joinedload(User.roles).joinedload(Role.permissions))
-    if "@" in identifier:
-        return query.filter(User.email == identifier).first()
-    return query.filter(User.phonenumber == identifier).first()
