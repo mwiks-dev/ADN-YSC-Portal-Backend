@@ -74,6 +74,13 @@ class UserQuery:
             for u in users
         ]
         return UserListResponse(users=result, totalCount=total_count)
+    
+    @strawberry.field
+    def me(self, info: Info) -> Optional[UserType]:
+        current_user = get_current_user(info)
+        if not current_user:
+            raise Exception("Unauthorized")
+        return current_user
 
 
 @strawberry.type
