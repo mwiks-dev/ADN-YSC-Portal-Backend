@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, event
 from sqlalchemy.orm import relationship
 from config.db import Base
-from scripts.generate_parish_prefixes import generate_parish_prefixes
-
+from scripts.generate_parish_prefixes import generate_single_parish_prefix
 class Parish(Base):
     __tablename__ = "parishes"
     id = Column(Integer, primary_key = True, index=True)
@@ -35,4 +34,4 @@ def set_parish_prefix(mapper, connection, target):
     name = getattr(target, "name", None) 
 
     if not getattr(target, "prefix", None) and name:
-        target.prefix = generate_parish_prefixes(name)
+        target.prefix = generate_single_parish_prefix(name)

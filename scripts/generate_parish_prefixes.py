@@ -1,6 +1,24 @@
 import re
 from config.db import SessionLocal
 
+def generate_single_parish_prefix(name: str) -> str:
+    """
+    Compute the prefix for a single parish name. Shared by the bulk
+    `generate_parish_prefixes()` script below and by the Parish model's
+    before_insert/before_update event listener (models/parish.py), so a
+    single new/updated parish doesn't need the whole table scanned just
+    to get its own prefix.
+    """
+    if not name:
+        return ""
+
+    name = name.strip()
+    name = re.sub(r"\bSt\.\b", "St", name, flags=re.IGNORECASE)
+
+    words = re.split(r"\s+", name)
+    initials = "".join([w[0].upper() for w in words if w and w[0].isalpha()])
+
+    return initials[:3]
 
 def generate_parish_prefixes():
     """Generate and update parish prefixes in batches."""
@@ -17,17 +35,7 @@ def generate_parish_prefixes():
                 parish.prefix = ""
                 continue
 
-            # Normalize name: remove extra spaces and periods after 'St.'
-            name = parish.name.strip()
-            name = re.sub(r"\bSt\.\b", "St", name, flags=re.IGNORECASE)
-
-            # Split into words and take the first letter of each
-            words = re.split(r"\s+", name)
-            initials = "".join(
-                [w[0].upper() for w in words if w and w[0].isalpha()]
-            )
-
-            prefix = initials[:3]
+            prefix = generate_single_parish_prefix(parish.name)
 
             #update only if not set or changed
             if parish.prefix != prefix:
