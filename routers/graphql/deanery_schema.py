@@ -7,9 +7,9 @@ from config.db import SessionLocal
 from models.deanery import Deanery
 from models.zone import Zone
 from models.parish import Parish
-from schemas.graphql.deanery_type import DeaneryInput, UpdateDeaneryDetails, DeanerySearchInput, DeaneryListResponse, CreateDeaneryResponse
+from schemas.graphql.deanery_type import DeaneryInput, UpdateDeaneryDetails, DeanerySearchInput, DeaneryListResponse, CreateDeaneryResponse, SplitDeaneryInput, SplitDeaneryResponse
 from schemas.graphql.shared_types import DeaneryType
-from services.deanery_service import get_deanery_by_id, get_deanery_by_name,get_deaneries_by_zone,create_deanery, update_deanery, delete_deanery
+from services.deanery_service import get_deanery_by_id, get_deanery_by_name,get_deaneries_by_zone,create_deanery, update_deanery, delete_deanery, split_deanery
 from utils.auth_utils import is_chaplain, is_ysc_coordinator, is_superuser
 
 
@@ -108,5 +108,40 @@ class DeaneryMutation:
             raise Exception("Only the Chaplain or Coordinator can delete a deanery!")
         db = SessionLocal()
         return delete_deanery(db,id)
+
+    @strawberry.mutation
+    def split_deanery(self, info:Info, input:SplitDeaneryInput) -> SplitDeaneryResponse:
+        """
+        Splits one deanery into two new deaneries. The caller decides which
+        newly formed deanery ("A" or "B") each existing parish goes to via
+        `input.parish_assignments`.
+        """
+        user = get_current_user(info)
+        if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
+            raise Exception("Only the Chaplain or Coordinator can split a deanery!")
+
+        db = SessionLocal()
+
+        assignments = {a.parish_id: a.target for a in input.parish_assignments}
+
+        try:
+            deanery_a, deanery_b = split_deanery(
+                db,
+                deanery_id=input.deanery_id,
+                deanery_a_name=input.deanery_a.name,
+                deanery_a_zone_id=input.deanery_a.zone_id,
+                deanery_b_name=input.deanery_b.name,
+                deanery_b_zone_id=input.deanery_b.zone_id,
+                parish_assignments=assignments,
+                delete_original=input.delete_original,
+            )
+        except ValueError as e:
+            raise Exception(str(e))
+
+        return SplitDeaneryResponse(
+            message=f"Deanery split into '{deanery_a.name}' and '{deanery_b.name}'",
+            deanery_a=deanery_a,
+            deanery_b=deanery_b,
+        )
 
 schema = strawberry.Schema(query=DeaneryQuery, mutation=DeaneryMutation)
