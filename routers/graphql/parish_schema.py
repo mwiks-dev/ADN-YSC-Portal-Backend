@@ -43,9 +43,9 @@ class ParishQuery:
         return get_all_users_of_parish(db,id)
     
     @strawberry.field
-    def deaneryParishes(self,deanery:str) -> List[ParishType]:
+    def deaneryParishes(self,deanery_id:int) -> List[ParishType]:
         db=SessionLocal()
-        return get_parishes_by_deanery(db,deanery)
+        return get_parishes_by_deanery(db,deanery_id)
     
 @strawberry.type    
 class ParishMutation:
