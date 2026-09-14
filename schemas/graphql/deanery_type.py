@@ -30,4 +30,27 @@ class DeaneryListResponse:
 class CreateDeaneryResponse:
     message: str
     deanery: DeaneryType
-    
+
+@strawberry.input
+class NewDeaneryInput:
+    name: str
+    zone_id: Optional[int] = None  # defaults to the source deanery's zone if omitted
+
+@strawberry.input
+class ParishAssignmentInput:
+    parish_id: int
+    target: str  # "A" -> deanery_a, "B" -> deanery_b
+
+@strawberry.input
+class SplitDeaneryInput:
+    deanery_id: int
+    deanery_a: NewDeaneryInput
+    deanery_b: NewDeaneryInput
+    parish_assignments: List[ParishAssignmentInput]
+    delete_original: Optional[bool] = False
+
+@strawberry.type
+class SplitDeaneryResponse:
+    message: str
+    deanery_a: DeaneryType
+    deanery_b: DeaneryType
