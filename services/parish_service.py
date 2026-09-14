@@ -10,8 +10,13 @@ def get_parishes(db:Session):
 def get_parish_by_id(db:Session,parish_id:int):
     return db.query(Parish).filter(Parish.id == parish_id).first()
 
-def get_parishes_by_deanery(db:Session,deanery:str):
-    return db.query(Parish).filter(Parish.deanery == deanery)
+def get_parishes_by_deanery(db:Session, deanery_id:int):
+    return (
+        db.query(Parish)
+        .filter(Parish.deanery_id == deanery_id)
+        .order_by(Parish.name.asc())
+        .all()
+    )
 
 def get_all_users_of_parish(db:Session,parish_id:int):
     return db.query(User).filter(User.parish_id==parish_id).all()
