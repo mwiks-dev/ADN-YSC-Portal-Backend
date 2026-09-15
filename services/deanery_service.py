@@ -78,9 +78,20 @@ def split_deanery(
         raise ValueError("Both new deaneries need a name")
     if deanery_a_name.lower() == deanery_b_name.lower():
         raise ValueError("The two new deaneries must have different names")
-    if get_deanery_by_name(db, deanery_a_name):
+
+    # A name only conflicts with a deanery that will still exist once this
+    # split is done. The original row itself doesn't count as a conflict
+    # when it's about to be deleted, which lets a caller "rename in place"
+    # by reusing the original's name for deanery A or B.
+    def name_conflicts(name: str, exclude_id: int | None) -> bool:
+        existing = get_deanery_by_name(db, name)
+        return bool(existing and existing.id != exclude_id)
+
+    exclude_id = original.id if delete_original else None
+
+    if name_conflicts(deanery_a_name, exclude_id):
         raise ValueError(f"A deanery named '{deanery_a_name}' already exists")
-    if get_deanery_by_name(db, deanery_b_name):
+    if name_conflicts(deanery_b_name, exclude_id):
         raise ValueError(f"A deanery named '{deanery_b_name}' already exists")
 
     original_parish_ids = {p.id for p in original.parishes}
@@ -108,6 +119,14 @@ def split_deanery(
     if original_parish_ids and not any(t == "B" for t in parish_assignments.values()):
         raise ValueError("Deanery B must receive at least one parish")
 
+    # The DB has a unique index on `name`, so if a new deanery is reusing the
+    # original's name, that name has to be freed up before the insert below -
+    # the DB doesn't know the original is about to be deleted. Rename it out
+    # of the way now; it's deleted for real further down.
+    if delete_original:
+        original.name = f"__deanery_split_{original.id}"
+        db.flush()
+
     # Create the two new deaneries. Falling back to the original zone keeps
     # behaviour sane if the caller doesn't want to move the split across zones.
     deanery_a = Deanery(name=deanery_a_name, zone_id=deanery_a_zone_id or original.zone_id)
@@ -115,11 +134,20 @@ def split_deanery(
     db.add_all([deanery_a, deanery_b])
     db.flush()  # assigns ids + lets the prefix-generation listener run for both
 
-    # This is the actual "connection between parishes and deanery IDs":
-    # re-point each parish's deanery_id at whichever new deanery it was assigned to.
-    for parish in original.parishes:
+    # This is the actual "connection between parishes and deanery IDs": move
+    # each parish to whichever new deanery it was assigned to. This has to go
+    # through the relationship collections (not just parish.deanery_id)
+    # because original.parishes is still loaded in memory - if we only set
+    # the raw column, SQLAlchemy still considers these parishes dependents of
+    # `original` when it processes the delete below, and nulls their FK back
+    # out as part of safely deleting the parent. Removing them from
+    # original.parishes (and appending to the target instead) keeps the ORM's
+    # view of the relationship in sync with what we're actually doing.
+    for parish in list(original.parishes):
         target = parish_assignments[parish.id]
-        parish.deanery_id = deanery_a.id if target == "A" else deanery_b.id
+        target_deanery = deanery_a if target == "A" else deanery_b
+        original.parishes.remove(parish)
+        target_deanery.parishes.append(parish)
 
     if delete_original:
         if original.events:

@@ -12,6 +12,10 @@ PERMISSIONS = [
     ("users.delete", "Delete a user"),
     ("users.role.assign", "Change a user's role"),
      ("users.password.reset", "Reset a member's password to the system default"),
+     ("deaneries.view", "View deanery list / search"),
+    ("deaneries.create", "Create a new deanery"),
+    ("deaneries.split", "Split a deanery into two"),
+    ("deaneries.delete", "Delete a deanery"),   
 ]
 
 # role_name -> list of permission names
