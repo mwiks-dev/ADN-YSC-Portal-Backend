@@ -23,20 +23,24 @@ class DeaneryQuery:
         elif name is not None:
             return get_deanery_by_name(db,name)
         return None
-    
+
     @strawberry.field
     def deaneries(self, info:Info, input:DeanerySearchInput) -> DeaneryListResponse:
         db = SessionLocal()
         query = (
             db.query(Deanery)
-            .join(Deanery.zone)  
-            .options(joinedload(Deanery.zone)) 
+            .join(Deanery.zone)
+            .options(joinedload(Deanery.zone))
         )
 
         # Apply search filter if provided
         if input.search and input.search.strip():
             search = f"%{input.search.strip()}%"
             query = query.filter(Deanery.name.ilike(search))
+
+        # Apply zone filter if provided
+        if input.zone_id:
+            query = query.filter(Deanery.zone_id == input.zone_id)
 
         # Order by zone name, then deanery name
         query = query.order_by(Zone.name.asc(), Deanery.name.asc())
@@ -45,15 +49,15 @@ class DeaneryQuery:
         total_count = query.count()
         offset = (input.page - 1) * input.limit
         deaneries = query.offset(offset).limit(input.limit).all()
-        
+
         return DeaneryListResponse(deaneries=deaneries, totalCount=total_count)
-    
+
     @strawberry.field
     def zoneDeaneries(self, zone:str) -> List[DeaneryType]:
         db = SessionLocal()
         return get_deaneries_by_zone(db, zone)
 
-@strawberry.type    
+@strawberry.type
 class DeaneryMutation:
     @strawberry.mutation
     def create_deanery(self, info:Info, input:DeaneryInput) -> DeaneryType:
@@ -81,26 +85,26 @@ class DeaneryMutation:
                 db.add(new_parish)
 
         db.commit()
-        db.refresh(deanery)  
+        db.refresh(deanery)
         return deanery
-    
+
     @strawberry.mutation
     def update_deanery(self, info:Info, input:UpdateDeaneryDetails) -> Optional[DeaneryType]:
         db = SessionLocal()
         parish = get_deanery_by_name(db, input.name)
         if not parish:
             raise Exception("Deanery not found!")
-    
+
         zone = db.query(Zone).filter_by(id=input.zone_id).first()
         if not zone:
             raise Exception("Zone not found!")
-        
+
         user = get_current_user(info)
         if not( is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
             raise Exception("Only the Chaplain or Coordinator can edit deanery details!")
 
         return update_deanery(db, input.id, input.name, input.zone_id)
-    
+
     @strawberry.mutation
     def delete_deanery(self,info:Info, id:int) -> Optional[DeaneryType]:
         user = get_current_user(info)
@@ -116,9 +120,9 @@ class DeaneryMutation:
         newly formed deanery ("A" or "B") each existing parish goes to via
         `input.parish_assignments`.
         """
-        # user = get_current_user(info)
-        # if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
-        #     raise Exception("Only the Chaplain or Coordinator can split a deanery!")
+        user = get_current_user(info)
+        if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
+            raise Exception("Only the Chaplain or Coordinator can split a deanery!")
 
         db = SessionLocal()
 
@@ -133,6 +137,7 @@ class DeaneryMutation:
                 deanery_b_name=input.deanery_b.name,
                 deanery_b_zone_id=input.deanery_b.zone_id,
                 parish_assignments=assignments,
+                delete_original=input.delete_original,
             )
         except ValueError as e:
             raise Exception(str(e))
