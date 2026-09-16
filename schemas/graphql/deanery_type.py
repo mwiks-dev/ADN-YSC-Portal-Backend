@@ -47,7 +47,6 @@ class SplitDeaneryInput:
     deanery_a: NewDeaneryInput
     deanery_b: NewDeaneryInput
     parish_assignments: List[ParishAssignmentInput]
-    delete_original: Optional[bool] = False
 
 @strawberry.type
 class SplitDeaneryResponse:

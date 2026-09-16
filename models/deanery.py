@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, event
+from sqlalchemy import Column, Integer, String, ForeignKey, event, select
 from config.db import Base
 from sqlalchemy.orm import relationship
 
@@ -20,14 +20,17 @@ class Deanery(Base):
 def generate_prefix(mapper, connection, target):
 
     if not target.zone_id:
-        return  # Skip if no zone assigned yet
+        return  
+    
+    from models.zone import Zone
+    zone_name = connection.execute(
+        select(Zone.name).where(Zone.id == target.zone_id)
+    ).scalar()
 
-    # Get the zone name safely from relationship or direct join
-    zone = target.zone
-    if not zone:
+    if not zone_name:
         return
 
-    zone_letter = zone.name.strip().split()[-1][-1].upper()  # "ZONE A" → "A"
+    zone_letter = zone_name.strip().split()[-1][-1].upper()  # "ZONE A" → "A"
     deanery_initials = target.name.strip().replace("DEANERY", "").strip().upper()[:3]
 
     new_prefix = f"{zone_letter}-{deanery_initials}"
@@ -35,4 +38,3 @@ def generate_prefix(mapper, connection, target):
     # Only update if it changed or is empty
     if target.prefix != new_prefix:
         target.prefix = new_prefix
-    

@@ -27,12 +27,9 @@ def generate_membership_no(db, parish_id):
 
     last_user = (
         db.query(User)
-        .filter(
-            User.parish_id == parish_id,
-            User.membership_no.like(prefix_pattern),
-        )
-        .order_by(User.membership_no.desc())  
-        .with_for_update()                  
+        .filter(User.membership_no.like(prefix_pattern))
+        .order_by(User.membership_no.desc())
+        .with_for_update()
         .first()
     )
 
