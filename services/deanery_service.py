@@ -46,25 +46,32 @@ def split_deanery(
     deanery_b_name: str,
     deanery_b_zone_id: int,
     parish_assignments: dict[int, str],
-    delete_original: bool = False,
 ):
     """
-    Splits an existing deanery into two brand-new deaneries (A and B).
+    Splits an existing deanery into two.
+
+    Deanery "A" REUSES the original deanery's primary key: it's the same
+    row, just renamed and/or re-zoned in place. Anything elsewhere in the
+    database that references the original deanery_id (events, historical
+    records, reports, etc.) automatically keeps pointing at a valid,
+    correct deanery - no reassignment, no dangling foreign keys, and no
+    leftover "retired" deanery row hanging around.
+
+    Deanery "B" is a genuinely new row.
 
     `parish_assignments` maps parish_id -> "A" or "B", letting the caller
-    decide exactly which new deanery each existing parish should move to.
-    Every parish currently in the source deanery must appear in the mapping,
-    and both new deaneries must end up with at least one parish - otherwise
-    it isn't really a split.
+    decide exactly which of the two resulting deaneries each existing
+    parish ends up under. Every parish currently in the source deanery must
+    appear in the mapping, and both sides must end up with at least one
+    parish - otherwise it isn't really a split.
 
-    The source deanery is only deleted if `delete_original=True` is passed
-    AND nothing else (e.g. events) still references it - deaneries are kept
-    around by default so historical data tied to the old deanery_id doesn't
-    break.
+    Either side can be moved to a different zone by passing a zone_id that
+    differs from the original deanery's zone; omitting a zone_id (None)
+    keeps that side in the original zone.
     """
     original = (
         db.query(Deanery)
-        .options(joinedload(Deanery.parishes), joinedload(Deanery.events))
+        .options(joinedload(Deanery.parishes))
         .filter(Deanery.id == deanery_id)
         .first()
     )
@@ -78,9 +85,15 @@ def split_deanery(
         raise ValueError("Both new deaneries need a name")
     if deanery_a_name.lower() == deanery_b_name.lower():
         raise ValueError("The two new deaneries must have different names")
-    if get_deanery_by_name(db, deanery_a_name):
+
+    # Name-uniqueness checks must exclude the original row itself, since
+    # deanery A is allowed to keep (or only slightly change) the original's
+    # own name.
+    existing_a = get_deanery_by_name(db, deanery_a_name)
+    if existing_a and existing_a.id != original.id:
         raise ValueError(f"A deanery named '{deanery_a_name}' already exists")
-    if get_deanery_by_name(db, deanery_b_name):
+    existing_b = get_deanery_by_name(db, deanery_b_name)
+    if existing_b and existing_b.id != original.id:
         raise ValueError(f"A deanery named '{deanery_b_name}' already exists")
 
     original_parish_ids = {p.id for p in original.parishes}
@@ -108,29 +121,25 @@ def split_deanery(
     if original_parish_ids and not any(t == "B" for t in parish_assignments.values()):
         raise ValueError("Deanery B must receive at least one parish")
 
-    # Create the two new deaneries. Falling back to the original zone keeps
-    # behaviour sane if the caller doesn't want to move the split across zones.
-    deanery_a = Deanery(name=deanery_a_name, zone_id=deanery_a_zone_id or original.zone_id)
+    # Deanery B: a brand new row. Can live in a different zone than the
+    # original deanery did.
     deanery_b = Deanery(name=deanery_b_name, zone_id=deanery_b_zone_id or original.zone_id)
-    db.add_all([deanery_a, deanery_b])
-    db.flush()  # assigns ids + lets the prefix-generation listener run for both
+    db.add(deanery_b)
+    db.flush()  # assigns its id + lets the prefix-generation listener run
 
-    # This is the actual "connection between parishes and deanery IDs":
-    # re-point each parish's deanery_id at whichever new deanery it was assigned to.
+    # Deanery A: the ORIGINAL row, renamed/re-zoned in place. Its id never
+    # changes, so every existing foreign-key reference to it stays valid
+    # with no extra work.
+    original.name = deanery_a_name
+    original.zone_id = deanery_a_zone_id or original.zone_id
+
+    # Only parishes moving to B need their deanery_id updated - parishes
+    # staying on A are already pointing at `original.id`, which is unchanged.
     for parish in original.parishes:
-        target = parish_assignments[parish.id]
-        parish.deanery_id = deanery_a.id if target == "A" else deanery_b.id
-
-    if delete_original:
-        if original.events:
-            raise ValueError(
-                f"Cannot delete the original deanery: {len(original.events)} event(s) "
-                f"still reference it. Reassign or remove those first, or split without "
-                f"deleting the original."
-            )
-        db.delete(original)
+        if parish_assignments[parish.id] == "B":
+            parish.deanery_id = deanery_b.id
 
     db.commit()
-    db.refresh(deanery_a)
+    db.refresh(original)
     db.refresh(deanery_b)
-    return deanery_a, deanery_b
+    return original, deanery_b

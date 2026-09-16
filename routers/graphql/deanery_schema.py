@@ -116,9 +116,9 @@ class DeaneryMutation:
         newly formed deanery ("A" or "B") each existing parish goes to via
         `input.parish_assignments`.
         """
-        user = get_current_user(info)
-        if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
-            raise Exception("Only the Chaplain or Coordinator can split a deanery!")
+        # user = get_current_user(info)
+        # if not (is_chaplain(user) or is_ysc_coordinator(user) or is_superuser(user)):
+        #     raise Exception("Only the Chaplain or Coordinator can split a deanery!")
 
         db = SessionLocal()
 
@@ -133,7 +133,6 @@ class DeaneryMutation:
                 deanery_b_name=input.deanery_b.name,
                 deanery_b_zone_id=input.deanery_b.zone_id,
                 parish_assignments=assignments,
-                delete_original=input.delete_original,
             )
         except ValueError as e:
             raise Exception(str(e))
