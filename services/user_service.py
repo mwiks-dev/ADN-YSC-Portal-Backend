@@ -8,8 +8,11 @@ from jose import jwt, JWTError
 import os
 from datetime import datetime, timedelta, date
 from typing import Optional
+from utils.membership_utils import generate_membership_no
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+MAX_MEMBERSHIP_RETRIES = 5
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -40,7 +43,20 @@ def get_user_by_identifier(db: Session, identifier: str):
 def get_users(db: Session):
     return db.query(User).all()
 
-def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirth: date, idnumber: int, baptismref: str, password: str, role: str, status: str, profile_pic: str, parish_id: int):
+def create_user(
+    db: Session,
+    name: str,
+    email: str,
+    phonenumber: str,
+    dateofbirth: date,
+    idnumber: int,
+    baptismref: str,
+    password: str,
+    role: str,
+    status: str,
+    profile_pic: str,
+    parish_id: int
+):
     hashed_password = pwd_context.hash(password)
 
     user = User(
@@ -59,35 +75,92 @@ def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirt
         updated_at=date.today(),
     )
 
-    db.add(user)
+    # ---------------------------------------------------------
+    # Try to create the user
+    # ---------------------------------------------------------
+    for attempt in range(MAX_MEMBERSHIP_RETRIES):
 
-    try:
-        db.commit()
-    except IntegrityError as e:
-        db.rollback()
-        # Retry once if the collision was on membership_no (race condition)
-        if "membership_no" in str(e.orig):
-            user.membership_no = None  # let the event listener re-generate
+        try:
+            # Generate the membership number explicitly
+            user.membership_no = generate_membership_no(
+                db,
+                parish_id
+            )
+
             db.add(user)
-            try:
-                db.commit()
-            except IntegrityError as retry_err:
-                db.rollback()
-                print("MEMBERSHIP RETRY FAILED:", repr(retry_err.orig))
-                raise ValueError(
-                    f"Membership number generation failed: {retry_err.orig}"
-                ) from retry_err
-        elif "email" in str(e.orig):
-            raise ValueError(f"A user with email '{email}' already exists.")
-        elif "phonenumber" in str(e.orig):
-            raise ValueError(f"A user with phone number '{phonenumber}' already exists.")
-        elif "idnumber" in str(e.orig):
-            raise ValueError(f"A user with ID number '{idnumber}' already exists.")
-        else:
-            raise
+            db.commit()
+            db.refresh(user)
 
-    db.refresh(user)
-    return user
+            return user
+
+        except IntegrityError as e:
+            db.rollback()
+
+            error_message = str(e.orig).lower()
+
+            # -------------------------------------------------
+            # Membership number collision
+            # -------------------------------------------------
+            if "membership_no" in error_message:
+
+                print(
+                    f"Membership number collision "
+                    f"(attempt {attempt + 1}/{MAX_MEMBERSHIP_RETRIES})"
+                )
+
+                print(
+                    f"Generated membership number: "
+                    f"{user.membership_no}"
+                )
+
+                # Clear the number.
+                # The next loop will generate a new one.
+                user.membership_no = None
+
+                continue
+
+            # -------------------------------------------------
+            # Email already exists
+            # -------------------------------------------------
+            elif "email" in error_message:
+
+                raise ValueError(
+                    f"A user with email '{email}' already exists."
+                )
+
+            # -------------------------------------------------
+            # Phone number already exists
+            # -------------------------------------------------
+            elif "phonenumber" in error_message:
+
+                raise ValueError(
+                    f"A user with phone number "
+                    f"'{phonenumber}' already exists."
+                )
+
+            # -------------------------------------------------
+            # ID number already exists
+            # -------------------------------------------------
+            elif "idnumber" in error_message:
+
+                raise ValueError(
+                    f"A user with ID number "
+                    f"'{idnumber}' already exists."
+                )
+
+            # -------------------------------------------------
+            # Unknown database error
+            # -------------------------------------------------
+            else:
+                raise
+
+    # ---------------------------------------------------------
+    # All membership-number attempts failed
+    # ---------------------------------------------------------
+    raise ValueError(
+        "Failed to generate a unique membership number "
+        f"after {MAX_MEMBERSHIP_RETRIES} attempts."
+    )
 
 def update_user(db: Session, id: int, name: str, email: str, phonenumber: str, dateofbirth: date, idnumber: int, baptismref: str, password: Optional[str], role: str, status: str, parish_id: int):
     user = db.query(User).filter(User.id == id).first()

@@ -47,13 +47,13 @@ class User(Base):
         return list(perms)
 
 
-@event.listens_for(User, "before_insert")
-def set_membership_no(mapper, connection, target):
-    """Automatically assign a membership number before inserting a user."""
-    db = Session(bind=connection)
-    try:
-        if not target.membership_no and target.parish_id:
-            target.membership_no = generate_membership_no(db, target.parish_id)
-    finally:
-        db.close()
+# @event.listens_for(User, "before_insert")
+# def set_membership_no(mapper, connection, target):
+#     """Automatically assign a membership number before inserting a user."""
+#     db = Session(bind=connection)
+#     try:
+#         if not target.membership_no and target.parish_id:
+#             target.membership_no = generate_membership_no(db, target.parish_id)
+#     finally:
+#         db.close()
         
