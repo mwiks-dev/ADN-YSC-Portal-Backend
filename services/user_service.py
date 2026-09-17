@@ -73,7 +73,10 @@ def create_user(db: Session, name: str, email: str, phonenumber: str, dateofbirt
                 db.commit()
             except IntegrityError as retry_err:
                 db.rollback()
-                raise ValueError("Failed to generate a unique membership number. Please try again.") from retry_err
+                print("MEMBERSHIP RETRY FAILED:", repr(retry_err.orig))
+                raise ValueError(
+                    f"Membership number generation failed: {retry_err.orig}"
+                ) from retry_err
         elif "email" in str(e.orig):
             raise ValueError(f"A user with email '{email}' already exists.")
         elif "phonenumber" in str(e.orig):
