@@ -57,6 +57,7 @@ def create_user(
     profile_pic: str,
     parish_id: int
 ):
+    print("🔥 NEW CREATE_USER CODE IS RUNNING 🔥")
     hashed_password = pwd_context.hash(password)
 
     user = User(
